@@ -1,6 +1,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { apiUrl } from '../apiConfig';
 import { AlertTriangle, Bot, Check, ChevronLeft, ChevronRight, MessageSquare, RefreshCw, Search, Wand2, XCircle } from 'lucide-react';
 
 /** Minimal UI helpers */
@@ -49,7 +50,7 @@ const [summary, setSummary] = useState('');
 
 // Load PRs on mount
 React.useEffect(() => {
-  axios.get('/api/prs').then(r => {
+  axios.get(apiUrl('prs','/api/prs')).then(r => {
     setPrs(r.data || []);
     if ((r.data || []).length) {
       setSelectedPR(r.data[0]);
@@ -60,12 +61,12 @@ React.useEffect(() => {
 // Load files when PR selected
 React.useEffect(() => {
   if (!selectedPR) return;
-  axios.get(`/api/prs/${selectedPR.id}/files`).then(r => {
+  axios.get(apiUrl('prs', `/api/prs/${selectedPR.id}/files`)).then(r => {
     setFiles(r.data || []);
     const f = (r.data || [])[0] || null;
     setActiveFile(f);
     if (f) {
-      axios.get(`/api/file/${f}`).then(rr => setCode(rr.data?.code || '')).catch(console.error);
+      axios.get(apiUrl('prs', `/api/file/${f}`)).then(rr => setCode(rr.data?.code || '')).catch(console.error);
     } else {
       setCode('');
     }
@@ -106,7 +107,7 @@ React.useEffect(() => {
   async function runAIReview(){
     if(!selectedPR) return;
     try {
-      const res = await axios.post(`/api/review/${selectedPR.id}`);
+      const res = await axios.post(apiUrl('review', `/api/review/${selectedPR.id}`));
       setIssues(res.data?.issues || []);
       setSummary(res.data?.summary || '');
     } catch (e) { console.error(e); }
@@ -114,7 +115,7 @@ React.useEffect(() => {
   async function applyPatch(issue){
     if(!issue.patch) return;
     try {
-      await axios.post('/api/patch', { prId: selectedPR.id, file: issue.file, before: issue.patch.before, after: issue.patch.after });
+      await axios.post(apiUrl('patch','/api/patch'), { prId: selectedPR.id, file: issue.file, before: issue.patch.before, after: issue.patch.after });
       setCode(prev=>prev.replace(issue.patch.before, issue.patch.after));
     } catch (e) { console.error(e); }
     setShowFix(null);
@@ -162,7 +163,7 @@ React.useEffect(() => {
           <div className="flex items-center gap-2">
           
           {files.map(f => (
-            <button key={f} onClick={()=>{setActiveFile(f); axios.get(`/api/file/${f}`).then(rr=> setCode(rr.data?.code||'')).catch(console.error);}} className={`rounded-md px-2 py-1 font-mono text-xs ${activeFile===f?'bg-white/10 text-slate-200':'bg-white/5 text-slate-400 hover:bg-white/10'}`}>{f}</button>
+            <button key={f} onClick={()=>{setActiveFile(f); axios.get(apiUrl('prs', `/api/file/${f}`)).then(rr=> setCode(rr.data?.code||'')).catch(console.error);}} className={`rounded-md px-2 py-1 font-mono text-xs ${activeFile===f?'bg-white/10 text-slate-200':'bg-white/5 text-slate-400 hover:bg-white/10'}`}>{f}</button>
           ))}
           
           </div>
@@ -287,7 +288,7 @@ React.useEffect(() => {
               if(e.key==='Enter' && e.currentTarget.value.trim()){
                 const t=e.currentTarget.value.trim(); e.currentTarget.value='';
                 setMessages(m=>[...m,{role:'user',text:t}]);
-                fetch('/api/agent-chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text: t })})
+                fetch(apiUrl('chat','/api/agent-chat'), {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text: t })})
           .then(r=>r.json()).then(d=>setMessages(m=>[...m,{role:'assistant', text: d.reply }]))
           .catch(()=>setMessages(m=>[...m,{role:'assistant', text: 'Agent unavailable'}]));
               }

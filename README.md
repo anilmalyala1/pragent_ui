@@ -43,3 +43,13 @@ The UI no longer uses hard-coded PRs or code. It loads from the server:
 - `POST /api/review/:id` → issues + summary
 
 Patches update server-side file content; re-opening file reflects changes.
+
+## API host configuration
+Each API group can point to a different host for progressive integration. Set any of the following environment variables when starting the dev server or building:
+
+- `REACT_APP_API_HOST_PRS`
+- `REACT_APP_API_HOST_REVIEW`
+- `REACT_APP_API_HOST_PATCH`
+- `REACT_APP_API_HOST_CHAT`
+
+If a variable is not provided, requests fall back to the current origin.
