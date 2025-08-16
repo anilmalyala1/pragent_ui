@@ -25,15 +25,18 @@ execute(query)
 `;
 
 const PRS = [
-  { id:'101', title:'Add user authentication', author:'alice', repo:'webapp', branch:'auth-feature', commits:5, updatedAgo:'2h', aiReviewed:true, files:['example.py'] },
+  { id:'101', title:'Add user authentication', author:'alice', repo:'webapp', branch:'auth-feature', commits:5, updatedAgo:'2h', aiReviewed:true, files:['example.py','test.json'] },
   { id:'102', title:'Refactor API handler', author:'bob', repo:'webapp', branch:'refactor/handlers', commits:3, updatedAgo:'1d', aiReviewed:false, files:['api.js'] },
   { id:'103', title:'Fix login bug', author:'carol', repo:'webapp', branch:'bugfix/login', commits:2, updatedAgo:'4h', aiReviewed:true, files:['login.js'] },
+  { id:'104', title:'Fix login bug', author:'carol', repo:'webapp', branch:'bugfix/login', commits:2, updatedAgo:'4h', aiReviewed:true, files:['test.json'] }
+
 ];
 
 const FILES = {
   "example.py": SAMPLE_CODE,
   "api.js": "// api.js\nexport async function handler(req, res){ /* ... */ }\n",
   "login.js": "// login.js\nfunction login(){ /* fix race */ }\n",
+  "test.json": "{test:'dssdsadsa'}"
 };
 
 const ISSUES = [
@@ -64,6 +67,12 @@ const ISSUES = [
     description:'Remove TODO or track via issue; leaves dead branches.',
     suggestion:'Replace with explicit function + tests.',
     category:'quality', severity:'minor', confidence:0.74,
+  },
+  {
+    id:'i5', file:'test.json', line:3, title:'TODO left in code',
+    description:'Remove TODO or track via issue; leaves dead branches.',
+    suggestion:'Replace with explicit function + tests.',
+    category:'quality', severity:'minor', confidence:0.40,
   },
 ];
 
