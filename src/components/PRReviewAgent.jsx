@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../apiConfig';
 import {
-  AlertTriangle, Bot, Check, ChevronLeft, ChevronRight,
+  AlertTriangle, Bot, Check, ChevronLeft, ChevronRight, ChevronsUpDown,
   MessageSquare, RefreshCw, Search, Wand2, XCircle
 } from 'lucide-react';
 
@@ -166,6 +166,10 @@ export default function PRReviewAgent(){
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoDropdownOpen, setRepoDropdownOpen] = useState(false);
+  const [repoSearch, setRepoSearch] = useState('');
+  const repoDropdownRef = useRef(null);
+
 
   // Pull requests scoped to the selected repository and the currently
   // selected pull request.
@@ -193,8 +197,23 @@ export default function PRReviewAgent(){
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([{role:'assistant', text:'Hey! Ask me about any flagged issue or request a patch.'}]);
 
+  // --- Close repo dropdown on outside click ---
+  React.useEffect(() => {
+      function handleClickOutside(event) {
+          if (repoDropdownRef.current && !repoDropdownRef.current.contains(event.target)) {
+              setRepoDropdownOpen(false);
+          }
+      }
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+          document.removeEventListener("mousedown", handleClickOutside);
+      };
+  }, [repoDropdownRef]);
 
-
+  const filteredRepos = useMemo(() => {
+      if (!repoSearch) return repos;
+      return repos.filter(repo => repo.toLowerCase().includes(repoSearch.toLowerCase()));
+  }, [repos, repoSearch]);
 
 
   // --- Tabs scrolling helpers ---
@@ -306,7 +325,7 @@ export default function PRReviewAgent(){
     //runAIReview();
   }, [selectedPR, activeFile]);
 
-  const lines = useMemo(()=> (code || '').split('\n'), [code]);
+  const lines = useMemo(()=> (code || '').split(' '), [code]);
   const lineRefs = useRef({});
 
   const visibleIssues = issues;
@@ -379,23 +398,55 @@ export default function PRReviewAgent(){
         </div>
         {/* Repository dropdown */}
         {loadingRepos ? (
-          <div className="flex items-center justify-center mb-3">
+          <div className="flex items-center justify-center mb-3 h-10">
             <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
             <span className="ml-2 text-sm text-slate-400">Loading repos…</span>
           </div>
         ) : (
-          <div className="mb-3">
-            <select
-              value={selectedRepo || ''}
-              onChange={(e) => setSelectedRepo(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-sm font-normal text-slate-200"
+          <div className="relative mb-3" ref={repoDropdownRef}>
+            <button
+              onClick={() => setRepoDropdownOpen(!repoDropdownOpen)}
+              className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm font-normal text-slate-200"
             >
-              {repos.map((repo) => (
-                <option key={repo} value={repo}>
-                  {repo}
-                </option>
-              ))}
-            </select>
+              <span className="truncate">{selectedRepo || 'Select a repository'}</span>
+              <ChevronsUpDown className="h-4 w-4 text-slate-400 shrink-0" />
+            </button>
+            {repoDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full bg-[#1c1c1c] border border-white/20 rounded-lg shadow-lg">
+                <div className="p-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
+                    <input
+                      type="text"
+                      placeholder="Search repositories..."
+                      value={repoSearch}
+                      onChange={(e) => setRepoSearch(e.target.value)}
+                      className="w-full bg-black/40 pl-8 pr-2 py-2 rounded-lg text-sm font-normal placeholder:text-slate-500 border border-white/10"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-60 overflow-y-auto p-1">
+                  {filteredRepos.length > 0 ? (
+                    filteredRepos.map((repo) => (
+                      <button
+                        key={repo}
+                        onClick={() => {
+                          setSelectedRepo(repo);
+                          setRepoDropdownOpen(false);
+                          setRepoSearch('');
+                        }}
+                        className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-200 hover:bg-white/10"
+                      >
+                        <span className="flex-1 truncate">{repo}</span>
+                        {repo === selectedRepo && <Check className="h-4 w-4 text-sky-400" />}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center text-xs text-slate-500 py-2">No repositories found.</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
         <div className="flex items-center gap-2 mb-3">
