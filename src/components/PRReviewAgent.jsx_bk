@@ -157,18 +157,6 @@ function PRCard({ pr, selected, onClick }) {
 export default function PRReviewAgent(){
 
   // Data from server
-  // Owner of the repositories to review.  Adjust this value as needed.
-  const owner = 'anilmalyala1';
-
-  // List of repositories and the currently selected repository.  Repositories
-  // are loaded on initial mount via a dedicated endpoint.  Selecting a
-  // repository triggers loading of its pull requests.
-  const [repos, setRepos] = useState([]);
-  const [selectedRepo, setSelectedRepo] = useState('');
-  const [loadingRepos, setLoadingRepos] = useState(false);
-
-  // Pull requests scoped to the selected repository and the currently
-  // selected pull request.
   const [prs, setPrs] = useState([]);
   const [selectedPR, setSelectedPR] = useState(null);
 
@@ -211,56 +199,53 @@ export default function PRReviewAgent(){
     if (btn) btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
   }, [activeFile]);
 
-  // Load PRs whenever the selected repository changes.  When a repo is
-  // selected, this effect fetches all pull requests for that repo,
-  // updating the list and selecting the first PR by default.  If no
-  // repository is selected, the PR list is cleared.
+  // Load all PRs for the owner on mount.  We request the server without specifying
+  // a repository so that it returns PRs across all repositories owned by this
+  // account.  Once loaded, we derive the list of repositories and select
+  // the first one by default.  PRs for the selected repository are then
+  // filtered into the `prs` state.
+  React.useEffect(() => {
+    setLoadingPRs(true);
+    axios
+      // omit the `repo` query parameter to fetch PRs across all repos for the owner
+      .get(apiUrl('prs', `/api/prs?owner=${owner}`))
+      .then((r) => {
+        const list = r.data || [];
+        // Keep a copy of all PRs regardless of repository
+        setAllPrs(list);
+        // Derive list of unique repository names from the PR data
+        const repoSet = new Set(list.map((p) => p.repo).filter(Boolean));
+        const repoList = Array.from(repoSet);
+        setRepos(repoList);
+        // Default to the first repository, if any
+        const defaultRepo = repoList[0] || '';
+        setSelectedRepo(defaultRepo);
+        // Filter PRs for the default repo
+        const repoPrs = defaultRepo ? list.filter((p) => p.repo === defaultRepo) : [];
+        setPrs(repoPrs);
+        // Select first PR in that repo
+        if (repoPrs.length) setSelectedPR(repoPrs[0]);
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => setLoadingPRs(false));
+  }, []);
+
+  // Whenever the selected repository changes, update the list of PRs and
+  // select the first PR in that repository (if available).  This effect
+  // depends on both `selectedRepo` and `allPrs` so that it runs whenever
+  // either changes.
   React.useEffect(() => {
     if (!selectedRepo) {
       setPrs([]);
       setSelectedPR(null);
       return;
     }
-    setLoadingPRs(true);
-    axios
-      .get(apiUrl('prs', `/api/prs?owner=${owner}&repo=${selectedRepo}`))
-      .then((r) => {
-        const list = r.data || [];
-        setPrs(list);
-        setSelectedPR(list.length ? list[0] : null);
-      })
-      .catch((err) => {
-        console.error(err);
-      })
-      .finally(() => setLoadingPRs(false));
-  }, [selectedRepo]);
-
-  // Load repositories on mount.  This fetches a list of repositories for
-  // the specified owner and selects the first one by default.  Once a
-  // repository is selected, a separate effect will fetch its PRs.
-  React.useEffect(() => {
-    setLoadingRepos(true);
-    axios
-      .get(apiUrl('prs', `/api/repos?owner=${owner}`))
-      .then((r) => {
-        const list = r.data || [];
-        // Normalize repository names from objects or strings
-        const repoNames = list.map((item) => {
-          if (typeof item === 'string') return item;
-          if (item && typeof item === 'object') {
-            return item.repo || item.name || '';
-          }
-          return '';
-        });
-        setRepos(repoNames);
-        const defaultRepo = repoNames[0] || '';
-        setSelectedRepo(defaultRepo);
-      })
-      .catch((err) => {
-        console.error(err);
-      })
-      .finally(() => setLoadingRepos(false));
-  }, []);
+    const repoPrs = allPrs.filter((p) => p.repo === selectedRepo);
+    setPrs(repoPrs);
+    setSelectedPR(repoPrs.length ? repoPrs[0] : null);
+  }, [selectedRepo, allPrs]);
 
   // Load files+contents when PR selected
   React.useEffect(() => {
@@ -274,12 +259,9 @@ export default function PRReviewAgent(){
 
     setLoadingFiles(true);
     axios
-      // Use the dynamic owner and selected repository for file contents
       .get(
-        apiUrl(
-          'prs',
-          `/api/files/prs/${owner}/${selectedRepo}/${selectedPR.id}/contents`
-        )
+        // Use the dynamic owner and selected repository in the API path
+        apiUrl('prs', `/api/files/prs/${owner}/${selectedRepo}/${selectedPR.id}/contents`)
       )
       .then((r) => {
         const { files: fList = [], contents: map = {} } = r.data || {};
@@ -335,6 +317,7 @@ export default function PRReviewAgent(){
     setLoadingReview(true);
     try {
       const res = await axios.post(
+        // Include owner and selected repository in the review endpoint
         apiUrl('prs', `/api/review/${owner}/${selectedRepo}/${selectedPR.id}`)
       );
       setIssues(res.data?.issues || []);
@@ -377,14 +360,9 @@ export default function PRReviewAgent(){
             {loadingPRs ? <RefreshCw className="h-3 w-3 animate-spin" /> : filteredPRs.length}
           </Badge>
         </div>
-        {/* Repository dropdown */}
-        {loadingRepos ? (
-          <div className="flex items-center justify-center mb-3">
-            <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
-            <span className="ml-2 text-sm text-slate-400">Loading repos…</span>
-          </div>
-        ) : (
-          <div className="mb-3">
+        {/* Repository selector: displayed once repositories are loaded */}
+        {repos && repos.length > 0 && (
+          <div className="mb-2">
             <select
               value={selectedRepo || ''}
               onChange={(e) => setSelectedRepo(e.target.value)}
