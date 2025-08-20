@@ -34,15 +34,15 @@ function PRCard({ pr, selected, onClick }) {
     <button
       onClick={onClick}
       aria-selected={selected}
-      className={`w-full text-left rounded-xl border px-3 py-2 transition
+      className={`w-full text-left rounded-lg border px-2.5 py-1.5 transition
         ${selected
           ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-400/30'
           : 'border-white/10 bg-black/30 hover:bg-white/5'}`}
     >
       {/* Title row */}
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1.5">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <div className="truncate font-medium text-slate-200">{pr.title || '(no title)'}</div>
             {pr.aiReviewed && (
               <span className="inline-flex items-center gap-1 rounded-md bg-violet-600/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white">
@@ -85,10 +85,10 @@ function PRCard({ pr, selected, onClick }) {
             <img
               alt={pr.author}
               src={avatar}
-              className="h-7 w-7 rounded-full border border-white/10 object-cover"
+              className="h-6 w-6 rounded-full border border-white/10 object-cover"
             />
           ) : (
-            <div className="h-7 w-7 rounded-full border border-white/10 bg-white/10 flex items-center justify-center">
+            <div className="h-6 w-6 rounded-full border border-white/10 bg-white/10 flex items-center justify-center">
               <User className="h-4 w-4 text-slate-400" />
             </div>
           )}
@@ -96,7 +96,7 @@ function PRCard({ pr, selected, onClick }) {
       </div>
 
       {/* Stats row */}
-      <div className="mt-2 flex items-center gap-3 text-xs text-slate-400">
+      <div className="mt-1.5 flex items-center gap-2.5 text-xs text-slate-400">
         <span className="inline-flex items-center gap-1">
           <GitCommit className="h-3.5 w-3.5" />
           {pr.commit ?? 0} commit{(pr.commit ?? 0) === 1 ? '' : 's'}
@@ -112,18 +112,18 @@ function PRCard({ pr, selected, onClick }) {
 
       {/* File chips preview */}
       {fileCount > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-1 flex flex-wrap gap-1">
           {firstFiles.map(name => (
             <span
               key={name}
               title={name}
-              className="max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-1.5 py-0.5 font-mono text-[11px] text-slate-300"
+              className="max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-1 py-0.5 font-mono text-[10px] text-slate-300"
             >
               {name}
             </span>
           ))}
           {overflow > 0 && (
-            <span className="rounded-md border border-white/10 bg-black/20 px-1.5 py-0.5 text-[11px] text-slate-400">
+            <span className="rounded-md border border-white/10 bg-black/20 px-1 py-0.5 text-[10px] text-slate-400">
               +{overflow} more
             </span>
           )}
@@ -135,15 +135,15 @@ function PRCard({ pr, selected, onClick }) {
 
 function PRCardSkeleton() {
   return (
-    <div className="w-full rounded-xl border border-white/10 bg-black/30 p-3">
+    <div className="w-full rounded-lg border border-white/10 bg-black/30 p-2.5">
       <div className="animate-pulse">
         <div className="h-4 bg-slate-700 rounded w-3/4"></div>
-        <div className="mt-2 h-3 bg-slate-700 rounded w-1/2"></div>
-        <div className="mt-4 flex items-center gap-3 text-xs text-slate-400">
+        <div className="mt-1.5 h-3 bg-slate-700 rounded w-1/2"></div>
+        <div className="mt-3 flex items-center gap-2.5 text-xs text-slate-400">
           <div className="h-4 w-16 bg-slate-700 rounded"></div>
           <div className="h-4 w-16 bg-slate-700 rounded"></div>
         </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           <div className="h-5 w-24 bg-slate-700 rounded-md"></div>
           <div className="h-5 w-20 bg-slate-700 rounded-md"></div>
           <div className="h-5 w-28 bg-slate-700 rounded-md"></div>
@@ -456,7 +456,7 @@ export default function PRReviewAgent(){
   return (
     <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
-      <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+      <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-2">
           <span>Pull Requests</span>
           <Badge className="border-sky-500/30 text-sky-300 font-medium">
@@ -545,7 +545,7 @@ export default function PRReviewAgent(){
       </div>
 
       {/* Center */}
-      <div className="sm:col-span-4 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+      <div className="sm:col-span-5 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex-1 flex gap-3 overflow-hidden">
           {isFileTreeOpen && (
             <div className="w-2/5 max-w-[320px] flex flex-col">
@@ -662,7 +662,7 @@ export default function PRReviewAgent(){
         </div>
         </div>
      {/* Right */}
-     <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+      <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-3">
           <span>AI Review</span>
           {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
