@@ -209,10 +209,12 @@ export default function PRReviewAgent(){
         setActiveFile(first);
         setCode(first ? map[first] || '' : '');
         setFileError(null);
+        runAIReview();
       })
       .catch((err) => {
         console.error(err);
         setFileError('Failed to load files');
+        setLoadingReview(false);
       })
       .finally(() => {
         setLoadingFiles(false);
@@ -295,12 +297,26 @@ export default function PRReviewAgent(){
   }
 
   async function runAIReview(){
+
     if(!selectedPR?.id){
       setReviewError('No pull request selected');
       return;
     }
     if(!files.length){
       setReviewError('No files to review');
+    
+    setLoadingReview(true);  
+    try {
+      const res = await axios.post(
+        // Include owner and selected repository in the review endpoint
+        apiUrl('prs', `/api/review/${owner}/${selectedRepo}/${selectedPR.id}`)
+      );
+      setIssues(res.data?.issues || []);
+      setSummary(res.data?.summary || '');
+    } catch (e) { 
+      console.error(e); 
+    }  
+
       return;
     }
 
