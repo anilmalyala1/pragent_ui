@@ -303,6 +303,12 @@ export default function PRReviewAgent(){
   const [sortBySeverity, setSortBySeverity] = useState(true);
   const [issueIndex, setIssueIndex] = useState(-1);
 
+  const [repoError, setRepoError] = useState(null);
+  const [prError, setPrError] = useState(null);
+  const [fileError, setFileError] = useState(null);
+  const [reviewError, setReviewError] = useState(null);
+  const [patchError, setPatchError] = useState(null);
+
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const [fileTreeWidth, setFileTreeWidth] = useState(260);
 
@@ -332,18 +338,22 @@ export default function PRReviewAgent(){
     if (!selectedRepo) {
       setPrs([]);
       setSelectedPR(null);
+      setPrError(null);
       return;
     }
     setLoadingPRs(true);
+    setPrError(null);
     axios
       .get(apiUrl('prs', `/api/prs?owner=${owner}&repo=${selectedRepo}`))
       .then((r) => {
         const list = r.data || [];
         setPrs(list);
         setSelectedPR(list.length ? list[0] : null);
+        setPrError(null);
       })
       .catch((err) => {
         console.error(err);
+        setPrError('Failed to load pull requests');
       })
       .finally(() => setLoadingPRs(false));
   }, [selectedRepo]);
@@ -353,6 +363,7 @@ export default function PRReviewAgent(){
   // repository is selected, a separate effect will fetch its PRs.
   React.useEffect(() => {
     setLoadingRepos(true);
+    setRepoError(null);
     axios
       .get(apiUrl('prs', `/api/repos?owner=${owner}`))
       .then((r) => {
@@ -368,16 +379,21 @@ export default function PRReviewAgent(){
         setRepos(repoNames);
         const defaultRepo = repoNames[0] || '';
         setSelectedRepo(defaultRepo);
+        setRepoError(null);
       })
       .catch((err) => {
         console.error(err);
+        setRepoError('Failed to load repositories');
       })
       .finally(() => setLoadingRepos(false));
   }, []);
 
   // Load files+contents when PR selected
   React.useEffect(() => {
-    if (!selectedPR) return;
+    if (!selectedPR) {
+      setFileError(null);
+      return;
+    }
 
     // reset state to avoid stale flashes
     setFiles([]);
@@ -391,6 +407,7 @@ export default function PRReviewAgent(){
     setLoadingReview(true);
 
     setLoadingFiles(true);
+    setFileError(null);
     axios
       // Use the dynamic owner and selected repository for file contents
       .get(
@@ -406,8 +423,12 @@ export default function PRReviewAgent(){
         const first = fList[0] || null;
         setActiveFile(first);
         setCode(first ? map[first] || '' : '');
+        setFileError(null);
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setFileError('Failed to load files');
+      })
       .finally(() => setLoadingFiles(false));
   }, [selectedPR?.id]);
 
@@ -524,6 +545,7 @@ export default function PRReviewAgent(){
     }
 
     setLoadingReview(true);
+    setReviewError(null);
     try {
       const res = await axios.post(
         apiUrl('prs', `/api/review/${owner}/${selectedRepo}/${selectedPR.id}`)
@@ -559,11 +581,13 @@ export default function PRReviewAgent(){
           };
           localStorage.setItem(cacheKey, JSON.stringify(toCache));
         }
+        setReviewError(null);
       } catch (err) {
         console.error('Failed to cache review response', err);
       }
     } catch (e) {
       console.error(e);
+      setReviewError('Failed to run AI review');
     } finally {
       setLoadingReview(false);
     }
@@ -608,10 +632,15 @@ export default function PRReviewAgent(){
 
   async function applyPatch(issue){
     if(!issue.patch) return;
+    setPatchError(null);
     try {
       await axios.post(apiUrl('patch','/api/patch'), { prId: selectedPR.id, file: issue.file, before: issue.patch.before, after: issue.patch.after });
       setCode(prev=>prev.replace(issue.patch.before, issue.patch.after));
-    } catch (e) { console.error(e); }
+      setPatchError(null);
+    } catch (e) {
+      console.error(e);
+      setPatchError('Failed to apply patch');
+    }
     setShowFix(null);
   }
 
@@ -684,6 +713,11 @@ export default function PRReviewAgent(){
             )}
           </div>
         )}
+        {repoError && (
+          <div className="mb-2 flex items-center text-xs text-red-400">
+            <XCircle className="h-3 w-3 mr-1" /> {repoError}
+          </div>
+        )}
         <div className="flex items-center gap-2 mb-3">
           <div className="relative w-full">
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
@@ -695,6 +729,11 @@ export default function PRReviewAgent(){
           <label className="flex items-center gap-2"><Switch checked={filterAI} onChange={setFilterAI}/> Has AI</label>
         </div>
         <div className="scroll-y grow pr-1 space-y-2">
+          {prError && (
+            <div className="text-xs text-red-400 flex items-center p-2 bg-red-500/10 rounded">
+              <XCircle className="h-3 w-3 mr-1" /> {prError}
+            </div>
+          )}
           {loadingPRs ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => <PRCardSkeleton key={i} />)}
@@ -729,6 +768,11 @@ export default function PRReviewAgent(){
                 </div>
               </div>
               <div className="scroll-y flex-1 p-2">
+                {fileError && (
+                  <div className="text-xs text-red-400 flex items-center p-2 bg-red-500/10 rounded mb-2">
+                    <XCircle className="h-3 w-3 mr-1" /> {fileError}
+                  </div>
+                )}
                 {loadingFiles ? (
                   <div className="flex items-center justify-center h-full text-sm text-slate-400">
                     <RefreshCw className="h-4 w-4 animate-spin mr-2" /> Loading...
@@ -765,6 +809,10 @@ export default function PRReviewAgent(){
                   <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
                   <span className="ml-3 text-slate-400 font-normal">Loading file...</span>
                 </div>
+              ) : fileError ? (
+                <div className="flex items-center justify-center h-full text-red-400 text-sm">
+                  <XCircle className="h-4 w-4 mr-2" /> {fileError}
+                </div>
               ) : (
                 <div className="scroll-y h-full">
                   <pre className="relative block w-full font-mono text-[12.5px] font-normal leading-6">
@@ -778,7 +826,7 @@ export default function PRReviewAgent(){
                         <React.Fragment key={lineNo}>
                           <div
                             ref={el => lineRefs.current[lineNo] = el}
-                            className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 transition-colors ${ 
+                            className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 transition-colors ${
                               isIssue ? 'bg-red-500/10 cursor-pointer hover:bg-red-500/20' : ''
                             } ${isExpanded ? 'bg-red-500/20' : ''}`}
                             onClick={() => isIssue && setExpandedIssue(isExpanded ? null : lineNo)}
@@ -839,7 +887,17 @@ export default function PRReviewAgent(){
           <span>AI Review</span>
           {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
         </div>
-        
+        {reviewError && (
+          <div className="mb-2 flex items-center text-xs text-red-400">
+            <XCircle className="h-3 w-3 mr-1" /> {reviewError}
+          </div>
+        )}
+        {patchError && (
+          <div className="mb-2 flex items-center text-xs text-red-400">
+            <XCircle className="h-3 w-3 mr-1" /> {patchError}
+          </div>
+        )}
+
         {/* Summary Section */}
         <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-3">
           {loadingReview ? (
