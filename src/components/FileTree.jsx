@@ -1,0 +1,74 @@
+import React, { useState, useMemo } from 'react';
+import { ChevronRight, FileText } from 'lucide-react';
+
+const buildFileTree = (files) => {
+  const tree = {};
+  files.forEach(file => {
+    const parts = file.split('/');
+    let currentLevel = tree;
+    parts.forEach((part, i) => {
+      if (!currentLevel[part]) {
+        currentLevel[part] = {
+          type: i === parts.length - 1 ? 'file' : 'folder',
+          path: file,
+          children: {}
+        };
+      }
+      currentLevel = currentLevel[part].children;
+    });
+  });
+  return tree;
+};
+
+export default function FileTree({ files = [], onFileClick, activeFile }) {
+  const tree = useMemo(() => buildFileTree(files), [files]);
+  const [openFolders, setOpenFolders] = useState({});
+
+  const toggleFolder = (path) => {
+    setOpenFolders(prev => ({ ...prev, [path]: !prev[path] }));
+  };
+
+  const renderTree = (node, path = '', level = 0) => {
+    return Object.entries(node).map(([name, item]) => {
+      const currentPath = path ? `${path}/${name}` : name;
+      if (item.type === 'folder') {
+        return (
+          <div key={currentPath} className="text-sm">
+            <button
+              onClick={() => toggleFolder(currentPath)}
+              className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:bg-white/5"
+            >
+              <ChevronRight
+                className={`h-4 w-4 shrink-0 transition-transform ${openFolders[currentPath] ? 'rotate-90' : ''}`}
+                style={{ marginLeft: `${level * 12}px` }}
+              />
+              <span className="truncate">{name}</span>
+            </button>
+            {openFolders[currentPath] && (
+              <div className="">
+                {renderTree(item.children, currentPath, level + 1)}
+              </div>
+            )}
+          </div>
+        );
+      }
+      return (
+        <button
+          key={currentPath}
+          onClick={() => onFileClick(item.path)}
+          className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
+            activeFile === item.path ? 'bg-sky-500/20 text-sky-200' : 'text-slate-400 hover:bg-white/5'
+          }`}
+          title={item.path}
+          style={{ paddingLeft: `${level * 12 + 16}px` }}
+        >
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{name}</span>
+        </button>
+      );
+    });
+  };
+
+  return <div>{renderTree(tree)}</div>;
+}
+

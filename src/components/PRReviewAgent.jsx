@@ -2,15 +2,22 @@
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../apiConfig';
-import ReactMarkdown from 'react-markdown';
 import {
-  AlertTriangle, Bot, Check, ChevronLeft, ChevronRight, ChevronsUpDown,
-  MessageSquare, RefreshCw, Search, Wand2, XCircle, Folder, File
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Wand2,
+  XCircle
 } from 'lucide-react';
 
 import Button from './ui/Button';
 import Badge from './ui/Badge';
-import Switch from './ui/Switch';
+
+import PRList from './PRList';
+import Summary from './Summary';
+import IssueViewer from './IssueViewer';
+import FileTree from './FileTree';
 
 const severityTone = {
   critical: 'bg-red-500/15 text-red-300 border-red-500/30',
@@ -28,232 +35,6 @@ const severityOrder = {
   minor: 5,
 };
 
-import {
-  GitBranch,
-  GitCommit,
-  FileText,
-  Clock,
-  Hash,
-  Bot as BotIcon,
-  User,
-  ChevronsUpDown as ToggleIcon,
-} from 'lucide-react';
-
-function PRCard({ pr, selected, onClick }) {
-  const [expanded, setExpanded] = useState(false);
-  const fileCount = Array.isArray(pr.files) ? pr.files.length : 0;
-  const firstFiles = (pr.files || []).slice(0, 3);
-  const overflow = Math.max(0, fileCount - firstFiles.length);
-  const avatar = pr.author ? `https://github.com/${pr.author}.png?size=40` : null;
-
-  return (
-    <div
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      aria-selected={selected}
-      className={`w-full text-left rounded-lg border px-2.5 py-1.5 transition ${
-        selected
-          ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-400/30'
-          : 'border-white/10 bg-black/30 hover:bg-white/5'
-      }`}
-    >
-      {/* Title row */}
-      <div className="flex items-start gap-1.5">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <div className="truncate font-medium text-slate-200">{pr.title || '(no title)'}</div>
-            {pr.aiReviewed && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-violet-600/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white">
-                <BotIcon className="h-[12px] w-[12px]" /> AI
-              </span>
-            )}
-            <span className="ml-auto inline-flex items-center gap-1 text-xs text-slate-400">
-              <Clock className="h-3.5 w-3.5" />
-              {pr.updatedAgo}
-            </span>
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                setExpanded(v => !v);
-              }}
-              className="ml-1 text-slate-400 hover:text-slate-200"
-              aria-label={expanded ? 'Collapse metadata' : 'Expand metadata'}
-            >
-              <ToggleIcon className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-
-          {expanded && (
-            <>
-              {/* Meta row */}
-              <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
-                <span title={pr.repo} className="truncate">
-                  {pr.repo}
-                </span>
-                <span className="text-slate-600">•</span>
-                <span className="inline-flex items-center gap-1 truncate" title={pr.branch}>
-                  <GitBranch className="h-3.5 w-3.5" />
-                  {pr.branch}
-                </span>
-                <span className="text-slate-600">•</span>
-                <span className="inline-flex items-center gap-1">
-                  <Hash className="h-3.5 w-3.5" />#{pr.id}
-                </span>
-                {pr.headSha && (
-                  <>
-                    <span className="text-slate-600">•</span>
-                    <span className="inline-flex items-center gap-1" title={pr.headSha}>
-                      <Hash className="h-3.5 w-3.5" />
-                      {String(pr.headSha).slice(0, 7)}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Stats row */}
-              <div className="mt-1.5 flex items-center gap-2.5 text-xs text-slate-400">
-                <span className="inline-flex items-center gap-1">
-                  <GitCommit className="h-3.5 w-3.5" />
-                  {pr.commit ?? 0} commit{(pr.commit ?? 0) === 1 ? '' : 's'}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <FileText className="h-3.5 w-3.5" />
-                  {fileCount} file{fileCount === 1 ? '' : 's'}
-                </span>
-                <span className="ml-auto inline-flex items-center gap-1 text-slate-500">
-                  by <span className="text-slate-300">{pr.author || 'unknown'}</span>
-                </span>
-              </div>
-
-              {/* File chips preview */}
-              {fileCount > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {firstFiles.map(name => (
-                    <span
-                      key={name}
-                      title={name}
-                      className="max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-1 py-0.5 font-mono text-[10px] text-slate-300"
-                    >
-                      {name}
-                    </span>
-                  ))}
-                  {overflow > 0 && (
-                    <span className="rounded-md border border-white/10 bg-black/20 px-1 py-0.5 text-[10px] text-slate-400">
-                      +{overflow} more
-                    </span>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Avatar */}
-        <div className="shrink-0">
-          {avatar ? (
-            <img
-              alt={pr.author}
-              src={avatar}
-              className="h-6 w-6 rounded-full border border-white/10 object-cover"
-            />
-          ) : (
-            <div className="h-6 w-6 rounded-full border border-white/10 bg-white/10 flex items-center justify-center">
-              <User className="h-4 w-4 text-slate-400" />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PRCardSkeleton() {
-  return (
-    <div className="w-full rounded-lg border border-white/10 bg-black/30 p-2.5">
-      <div className="animate-pulse">
-        <div className="h-4 bg-slate-700 rounded w-3/4"></div>
-        <div className="mt-1.5 h-3 bg-slate-700 rounded w-1/2"></div>
-        <div className="mt-3 flex items-center gap-2.5 text-xs text-slate-400">
-          <div className="h-4 w-16 bg-slate-700 rounded"></div>
-          <div className="h-4 w-16 bg-slate-700 rounded"></div>
-        </div>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          <div className="h-5 w-24 bg-slate-700 rounded-md"></div>
-          <div className="h-5 w-20 bg-slate-700 rounded-md"></div>
-          <div className="h-5 w-28 bg-slate-700 rounded-md"></div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const buildFileTree = (files) => {
-  const tree = {};
-
-  files.forEach(file => {
-    const parts = file.split('/');
-    let currentLevel = tree;
-
-    parts.forEach((part, i) => {
-      if (!currentLevel[part]) {
-        currentLevel[part] = { type: i === parts.length - 1 ? 'file' : 'folder', path: file, children: {} };
-      }
-      currentLevel = currentLevel[part].children;
-    });
-  });
-
-  return tree;
-};
-
-const FileTree = ({ tree, onFileClick, activeFile }) => {
-  const [openFolders, setOpenFolders] = useState({});
-
-  const toggleFolder = (path) => {
-    setOpenFolders(prev => ({ ...prev, [path]: !prev[path] }));
-  };
-
-  const renderTree = (node, path = '', level = 0) => {
-    return Object.entries(node).map(([name, item]) => {
-      const currentPath = path ? `${path}/${name}` : name;
-      if (item.type === 'folder') {
-        return (
-          <div key={currentPath} className="text-sm">
-            <button onClick={() => toggleFolder(currentPath)} className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:bg-white/5">
-              <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${openFolders[currentPath] ? 'rotate-90' : ''}`} style={{ marginLeft: `${level * 12}px` }} />
-              <span className="truncate">{name}</span>
-            </button>
-            {openFolders[currentPath] && (
-              <div className="">
-                {renderTree(item.children, currentPath, level + 1)}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      return (
-        <button
-          key={currentPath}
-          onClick={() => onFileClick(item.path)}
-          className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
-            activeFile === item.path
-              ? 'bg-sky-500/20 text-sky-200'
-              : 'text-slate-400 hover:bg-white/5'
-          }`}
-          title={item.path}
-		  style={{ paddingLeft: `${(level * 12) + 16}px` }}
-        >
-          <FileText className="h-3.5 w-3.5 shrink-0" />
-          <span className="truncate">{name}</span>
-        </button>
-      );
-    });
-  };
-
-  return <div>{renderTree(tree)}</div>;
-};
-
 
 export default function PRReviewAgent(){
 
@@ -267,9 +48,6 @@ export default function PRReviewAgent(){
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(false);
-  const [repoDropdownOpen, setRepoDropdownOpen] = useState(false);
-  const [repoSearch, setRepoSearch] = useState('');
-  const repoDropdownRef = useRef(null);
 
 
   // Pull requests scoped to the selected repository and the currently
@@ -290,10 +68,6 @@ export default function PRReviewAgent(){
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
 
-  const [filterMine, setFilterMine] = useState(false);
-  const [filterAI, setFilterAI] = useState(false);
-  const [search, setSearch] = useState('');
-  const [onlyAI, setOnlyAI] = useState(false);
   const [showFix, setShowFix] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([{role:'assistant', text:'Hey! Ask me about any flagged issue or request a patch.'}]);
@@ -304,25 +78,6 @@ export default function PRReviewAgent(){
 
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const [fileTreeWidth, setFileTreeWidth] = useState(260);
-
-  // --- Close repo dropdown on outside click ---
-  React.useEffect(() => {
-      function handleClickOutside(event) {
-          if (repoDropdownRef.current && !repoDropdownRef.current.contains(event.target)) {
-              setRepoDropdownOpen(false);
-          }
-      }
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-      };
-  }, [repoDropdownRef]);
-
-  const filteredRepos = useMemo(() => {
-      if (!repoSearch) return repos;
-      return repos.filter(repo => repo.toLowerCase().includes(repoSearch.toLowerCase()));
-  }, [repos, repoSearch]);
-
   // Load PRs whenever the selected repository changes.  When a repo is
   // selected, this effect fetches all pull requests for that repo,
   // updating the list and selecting the first PR by default.  If no
@@ -440,17 +195,6 @@ export default function PRReviewAgent(){
   }, [issues, severityFilter, sortBySeverity]);
 
   const activeFileIndex = useMemo(() => files.indexOf(activeFile), [files, activeFile]);
-
-  const filteredPRs = useMemo(()=>{
-    let items = [...prs];
-    if(filterAI) items = items.filter(p=>p.aiReviewed);
-    if(search.trim()){
-      const s = search.toLowerCase();
-      items = items.filter(p => (p.title+p.author+p.repo+p.branch).toLowerCase().includes(s));
-    }
-    if(filterMine) items = items.filter(p=>p.author==='alice'); // tweak as needed
-    return items;
-  },[filterAI,filterMine,search, prs]);
 
   React.useEffect(() => {
     if (issueIndex >= visibleIssues.length) {
@@ -623,93 +367,16 @@ export default function PRReviewAgent(){
   return (
     <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
-      <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
-        <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-2">
-          <span>Pull Requests</span>
-          <Badge className="border-sky-500/30 text-sky-300 font-medium">
-            {loadingPRs ? <RefreshCw className="h-3 w-3 animate-spin" /> : filteredPRs.length}
-          </Badge>
-        </div>
-        {/* Repository dropdown */}
-        {loadingRepos ? (
-          <div className="flex items-center justify-center mb-3 h-10">
-            <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
-            <span className="ml-2 text-sm text-slate-400">Loading repos…</span>
-          </div>
-        ) : (
-          <div className="relative mb-3" ref={repoDropdownRef}>
-            <button
-              onClick={() => setRepoDropdownOpen(!repoDropdownOpen)}
-              className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm font-normal text-slate-200"
-            >
-              <span className="truncate">{selectedRepo || 'Select a repository'}</span>
-              <ChevronsUpDown className="h-4 w-4 text-slate-400 shrink-0" />
-            </button>
-            {repoDropdownOpen && (
-              <div className="absolute z-10 mt-1 w-full bg-[#1c1c1c] border border-white/20 rounded-lg shadow-lg">
-                <div className="p-2">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
-                    <input
-                      type="text"
-                      placeholder="Search repositories..."
-                      value={repoSearch}
-                      onChange={(e) => setRepoSearch(e.target.value)}
-                      className="w-full bg-black/40 pl-8 pr-2 py-2 rounded-lg text-sm font-normal placeholder:text-slate-500 border border-white/10"
-                    />
-                  </div>
-                </div>
-                <div className="max-h-60 overflow-y-auto p-1">
-                  {filteredRepos.length > 0 ? (
-                    filteredRepos.map((repo) => (
-                      <button
-                        key={repo}
-                        onClick={() => {
-                          setSelectedRepo(repo);
-                          setRepoDropdownOpen(false);
-                          setRepoSearch('');
-                        }}
-                        className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-200 hover:bg-white/10"
-                      >
-                        <span className="flex-1 truncate">{repo}</span>
-                        {repo === selectedRepo && <Check className="h-4 w-4 text-sky-400" />}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center text-xs text-slate-500 py-2">No repositories found.</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search PRs…" className="w-full bg-black/40 pl-8 pr-2 py-2 rounded-lg text-sm font-normal placeholder:text-slate-500 border border-white/10"/>
-          </div>
-        </div>
-        <div className="flex items-center justify-between text-xs font-medium text-slate-400 mb-2">
-          <label className="flex items-center gap-2"><Switch checked={filterMine} onChange={setFilterMine}/> Mine</label>
-          <label className="flex items-center gap-2"><Switch checked={filterAI} onChange={setFilterAI}/> Has AI</label>
-        </div>
-        <div className="scroll-y grow pr-1 space-y-2">
-          {loadingPRs ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => <PRCardSkeleton key={i} />)}
-            </div>
-          ) : (
-            filteredPRs.map(pr => (
-              <PRCard
-                key={pr.id}
-                pr={pr}
-                selected={selectedPR?.id === pr.id}
-                onClick={() => setSelectedPR(pr)}
-              />
-            ))
-          )}
-        </div>
-      </div>
+      <PRList
+        repos={repos}
+        selectedRepo={selectedRepo}
+        setSelectedRepo={setSelectedRepo}
+        loadingRepos={loadingRepos}
+        prs={prs}
+        selectedPR={selectedPR}
+        setSelectedPR={setSelectedPR}
+        loadingPRs={loadingPRs}
+      />
 
       {/* Center */}
       <div className="sm:col-span-6 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
@@ -733,7 +400,7 @@ export default function PRReviewAgent(){
                     <RefreshCw className="h-4 w-4 animate-spin mr-2" /> Loading...
                   </div>
                 ) : files.length > 0 ? (
-                  <FileTree tree={buildFileTree(files)} onFileClick={setActiveFile} activeFile={activeFile} />
+                  <FileTree files={files} onFileClick={setActiveFile} activeFile={activeFile} />
                 ) : (
                   <div className="text-center text-xs text-slate-500 py-4">No files in PR.</div>
                 )}
@@ -838,145 +505,25 @@ export default function PRReviewAgent(){
           <span>AI Review</span>
           {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
         </div>
-        
-        {/* Summary Section */}
-        <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-3">
-          {loadingReview ? (
-            <div className="space-y-2 animate-pulse">
-              <div className="h-4 w-1/2 bg-white/10 rounded" />
-              <div className="h-3 w-full bg-white/10 rounded" />
-              <div className="h-3 w-3/4 bg-white/10 rounded" />
-            </div>
-          ) : (
-            <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown>{summary || 'Run AI review to see insights.'}</ReactMarkdown>
-            </div>
-          )}
-        </div>
 
-        {/* Issue controls */}
-        <div className="flex items-center gap-2 text-xs text-slate-300 mb-3">
-          <label htmlFor="severity-filter">Severity</label>
-          <select
-            id="severity-filter"
-            value={severityFilter}
-            onChange={e => setSeverityFilter(e.target.value)}
-            className="bg-black/20 border border-white/10 rounded px-1.5 py-1 text-slate-200"
-          >
-            <option value="all">All</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="minor">Minor</option>
-          </select>
-          <Button
-            onClick={() => setSortBySeverity(s => !s)}
-            size="sm"
-            variant="outline"
-            className="h-7 px-2"
-            aria-label="Sort by severity"
-          >
-            <ChevronsUpDown className={`h-3.5 w-3.5 ${sortBySeverity ? 'text-sky-300' : ''}`} />
-          </Button>
-          <span className="ml-auto text-slate-500">Ctrl+←/→ files, Ctrl+↑/↓ issues</span>
-        </div>
+        <Summary summary={summary} loadingReview={loadingReview} />
 
-        {/* Issues List - Show all issues but highlight current file */}
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-          {loadingReview ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 rounded-xl border border-white/10 bg-black/20 animate-pulse"></div>
-            ))
-          ) : (
-            <>
-          {visibleIssues.map((issue, idx) => (
-            <div
-              key={issue.id}
-              onClick={() => {
-                setActiveFile(issue.file);
-                scrollToLine(issue.line);
-                setExpandedIssue(issue.line);
-                setIssueIndex(idx);
-              }}
-              className={`rounded-xl border p-4 transition-colors cursor-pointer ${
-                issue.file === activeFile && expandedIssue === issue.line
-                  ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-500/30'
-                  : issue.file === activeFile
-                    ? 'border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10' 
-                    : 'border-white/10 bg-black/30 hover:bg-black/40'
-              }`}
-            >
-              <div className="space-y-3">
-                {/* Header with severity and title */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <Badge className={`${severityTone[issue.severity]} font-medium text-xs px-2 py-1 shrink-0`}>
-                      {issue.severity}
-                    </Badge>
-                    <h4 className="text-sm font-semibold text-slate-200 leading-tight break-all">
-                      {issue.title}
-                    </h4>
-                  </div>
-                  {issue.patch && (
-                    <Button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowFix(issue);
-                      }} 
-                      size="sm" 
-                      className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-white shrink-0"
-                    >
-                      <Wand2 className="h-3 w-3" />
-                      Fix
-                    </Button>
-                  )}
-                </div>
-
-                {/* Description */}
-                <div className="text-xs font-normal text-slate-300 leading-relaxed break-words">
-                  {issue.description}
-                </div>
-
-                {/* Location and metadata */}
-                <div className="flex items-center gap-3 text-xs font-normal text-slate-400 pt-1 border-t border-white/5">
-                  <span className="flex items-center gap-1">
-                    <Hash className="h-3 w-3" />
-                    Line {issue.line}
-                  </span>
-                  {issue.file && (
-                    <>
-                      <span className="text-slate-600">•</span>
-                      <span className={`flex items-center gap-1 font-mono ${ 
-                        issue.file === activeFile ? 'text-sky-300' : 'text-slate-400'
-                      }`}>
-                        <FileText className="h-3 w-3" />
-                        {issue.file}
-                      </span>
-                    </>
-                  )}
-                  {/* Show indicator for current file */}
-                  {issue.file === activeFile && (
-                    <span className="text-sky-400 text-[10px] px-1.5 py-0.5 bg-sky-500/20 rounded border border-sky-500/30">
-                      Current
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Empty state */}
-          {visibleIssues.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Bot className="h-12 w-12 text-slate-600 mb-3" />
-              <p className="text-sm font-medium text-slate-400 mb-1">No issues found</p>
-              <p className="text-xs text-slate-500">Run AI review to analyze your code</p>
-            </div>
-          )}
-          </>
-          )}
-        </div>
+        <IssueViewer
+          loadingReview={loadingReview}
+          severityFilter={severityFilter}
+          setSeverityFilter={setSeverityFilter}
+          sortBySeverity={sortBySeverity}
+          setSortBySeverity={setSortBySeverity}
+          visibleIssues={visibleIssues}
+          activeFile={activeFile}
+          setActiveFile={setActiveFile}
+          scrollToLine={scrollToLine}
+          expandedIssue={expandedIssue}
+          setExpandedIssue={setExpandedIssue}
+          setIssueIndex={setIssueIndex}
+          setShowFix={setShowFix}
+          severityTone={severityTone}
+        />
       </div>
 
       {/* Chat Modal */}
