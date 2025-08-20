@@ -176,6 +176,7 @@ export default function PRReviewAgent(){
   React.useEffect(() => {
     if (!selectedPR) {
       setFileError(null);
+      setLoadingReview(false);
       return;
     }
 
@@ -213,7 +214,10 @@ export default function PRReviewAgent(){
         console.error(err);
         setFileError('Failed to load files');
       })
-      .finally(() => setLoadingFiles(false));
+      .finally(() => {
+        setLoadingFiles(false);
+        setLoadingReview(false);
+      });
   }, [selectedPR?.id]);
 
   // Update code whenever activeFile or contents change
@@ -223,11 +227,7 @@ export default function PRReviewAgent(){
     setExpandedIssue(null);
   }, [activeFile, contents]);
 
-  // Run AI review only after all files have finished loading
-  React.useEffect(() => {
-    if (!selectedPR || loadingFiles) return;
-    runAIReview();
-  }, [selectedPR, loadingFiles]);
+  // Run AI review is triggered after contents load in the above effect
 
   const lines = useMemo(() => (code || '').split('\n'), [code]);
   const lineRefs = useRef({});
@@ -295,11 +295,20 @@ export default function PRReviewAgent(){
   }
 
   async function runAIReview(){
-    if(!selectedPR) return;
+    if(!selectedPR?.id){
+      setReviewError('No pull request selected');
+      return;
+    }
+    if(!files.length){
+      setReviewError('No files to review');
+      return;
+    }
 
     const commitCount = selectedPR.commit ?? selectedPR.commits ?? 0;
     const updatedDate = selectedPR.updatedAt ?? selectedPR.updated ?? selectedPR.updatedAgo ?? '';
     const cacheKey = `aiReview:${owner}:${selectedRepo}:${selectedPR.id}`;
+
+    setLoadingReview(true);
 
     // Attempt to load cached review
     try {
@@ -321,6 +330,7 @@ export default function PRReviewAgent(){
               p.id === prId ? { ...p, issueStats: stats, aiReviewed: true } : p
             )
           );
+          setLoadingReview(false);
           return; // use cache
         }
       }
@@ -328,7 +338,6 @@ export default function PRReviewAgent(){
       console.error('Failed to read review cache', err);
     }
 
-    setLoadingReview(true);
     setReviewError(null);
     try {
       const res = await axios.post(
@@ -669,7 +678,17 @@ export default function PRReviewAgent(){
       <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-3">
           <span>AI Review</span>
-          {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
+          <div className="flex items-center gap-2">
+            {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
+            <Button
+              onClick={runAIReview}
+              size="sm"
+              disabled={loadingReview || loadingFiles || !selectedPR || !files.length}
+              className="font-medium"
+            >
+              Run
+            </Button>
+          </div>
         </div>
         {reviewError && (
           <div className="mb-2 flex items-center text-xs text-red-400">
