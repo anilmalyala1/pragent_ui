@@ -384,6 +384,10 @@ export default function PRReviewAgent(){
     setActiveFile(null);
     setCode('');
     setExpandedIssue(null);
+    setIssues([]);
+    setSummary('');
+    setIssueIndex(-1);
+    setLoadingReview(true);
 
     setLoadingFiles(true);
     axios
@@ -836,7 +840,7 @@ export default function PRReviewAgent(){
         </div>
         
         {/* Summary Section */}
-        <div className="mb-4 rounded-xl border border-white/10 bg-black/40 p-3">
+        <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-white/10 bg-black/40 p-3">
           {loadingReview ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-4 w-1/2 bg-white/10 rounded" />
