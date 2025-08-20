@@ -2,36 +2,15 @@
 import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../apiConfig';
+import ReactMarkdown from 'react-markdown';
 import {
   AlertTriangle, Bot, Check, ChevronLeft, ChevronRight, ChevronsUpDown,
-  MessageSquare, RefreshCw, Search, Wand2, XCircle
+  MessageSquare, RefreshCw, Search, Wand2, XCircle, Folder, File
 } from 'lucide-react';
 
-/** Minimal UI helpers */
-const Button = ({ children, className = '', ...props }) => (
-  <button className={`inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/10 transition ${className}`} {...props}>
-    {children}
-  </button>
-);
-
-const Badge = ({ children, className = '', ...props }) => (
-  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${className}`} {...props}>
-    {children}
-  </span>
-);
-
-const Switch = ({ checked, onChange, ...props }) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={checked}
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-black ${checked ? 'bg-sky-500' : 'bg-white/20'}`}
-    {...props}
-  >
-    <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-1'}`} />
-  </button>
-);
+import Button from './ui/Button';
+import Badge from './ui/Badge';
+import Switch from './ui/Switch';
 
 const severityTone = {
   critical: 'bg-red-500/15 text-red-300 border-red-500/30',
@@ -154,6 +133,93 @@ function PRCard({ pr, selected, onClick }) {
   );
 }
 
+function PRCardSkeleton() {
+  return (
+    <div className="w-full rounded-xl border border-white/10 bg-black/30 p-3">
+      <div className="animate-pulse">
+        <div className="h-4 bg-slate-700 rounded w-3/4"></div>
+        <div className="mt-2 h-3 bg-slate-700 rounded w-1/2"></div>
+        <div className="mt-4 flex items-center gap-3 text-xs text-slate-400">
+          <div className="h-4 w-16 bg-slate-700 rounded"></div>
+          <div className="h-4 w-16 bg-slate-700 rounded"></div>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="h-5 w-24 bg-slate-700 rounded-md"></div>
+          <div className="h-5 w-20 bg-slate-700 rounded-md"></div>
+          <div className="h-5 w-28 bg-slate-700 rounded-md"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const buildFileTree = (files) => {
+  const tree = {};
+
+  files.forEach(file => {
+    const parts = file.split('/');
+    let currentLevel = tree;
+
+    parts.forEach((part, i) => {
+      if (!currentLevel[part]) {
+        currentLevel[part] = { type: i === parts.length - 1 ? 'file' : 'folder', path: file, children: {} };
+      }
+      currentLevel = currentLevel[part].children;
+    });
+  });
+
+  return tree;
+};
+
+const FileTree = ({ tree, onFileClick, activeFile }) => {
+  const [openFolders, setOpenFolders] = useState({});
+
+  const toggleFolder = (path) => {
+    setOpenFolders(prev => ({ ...prev, [path]: !prev[path] }));
+  };
+
+  const renderTree = (node, path = '', level = 0) => {
+    return Object.entries(node).map(([name, item]) => {
+      const currentPath = path ? `${path}/${name}` : name;
+      if (item.type === 'folder') {
+        return (
+          <div key={currentPath} className="text-sm">
+            <button onClick={() => toggleFolder(currentPath)} className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:bg-white/5">
+              <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${openFolders[currentPath] ? 'rotate-90' : ''}`} style={{ marginLeft: `${level * 12}px` }} />
+              <span className="truncate">{name}</span>
+            </button>
+            {openFolders[currentPath] && (
+              <div className="">
+                {renderTree(item.children, currentPath, level + 1)}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <button
+          key={currentPath}
+          onClick={() => onFileClick(item.path)}
+          className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
+            activeFile === item.path
+              ? 'bg-sky-500/20 text-sky-200'
+              : 'text-slate-400 hover:bg-white/5'
+          }`}
+          title={item.path}
+		  style={{ paddingLeft: `${(level * 12) + 16}px` }}
+        >
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{name}</span>
+        </button>
+      );
+    });
+  };
+
+  return <div>{renderTree(tree)}</div>;
+};
+
+
 export default function PRReviewAgent(){
 
   // Data from server
@@ -196,6 +262,9 @@ export default function PRReviewAgent(){
   const [showFix, setShowFix] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([{role:'assistant', text:'Hey! Ask me about any flagged issue or request a patch.'}]);
+  const [expandedIssue, setExpandedIssue] = useState(null);
+
+  const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
 
   // --- Close repo dropdown on outside click ---
   React.useEffect(() => {
@@ -214,21 +283,6 @@ export default function PRReviewAgent(){
       if (!repoSearch) return repos;
       return repos.filter(repo => repo.toLowerCase().includes(repoSearch.toLowerCase()));
   }, [repos, repoSearch]);
-
-
-  // --- Tabs scrolling helpers ---
-  const tabsRef = useRef(null);
-  function scrollTabs(dir = 1) {
-    const el = tabsRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 220, behavior: 'smooth' });
-  }
-  React.useEffect(() => {
-    // Ensure active tab is visible when it changes
-    if (!tabsRef.current || !activeFile) return;
-    const btn = tabsRef.current.querySelector(`[data-file="${CSS.escape(activeFile)}"]`);
-    if (btn) btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
-  }, [activeFile]);
 
   // Load PRs whenever the selected repository changes.  When a repo is
   // selected, this effect fetches all pull requests for that repo,
@@ -290,6 +344,7 @@ export default function PRReviewAgent(){
     setContents({});
     setActiveFile(null);
     setCode('');
+    setExpandedIssue(null);
 
     setLoadingFiles(true);
     axios
@@ -317,6 +372,7 @@ export default function PRReviewAgent(){
   React.useEffect(() => {
     if (!activeFile) return;
     setCode(contents[activeFile] || '');
+    setExpandedIssue(null);
   }, [activeFile, contents]);
 
   // Run review after file/code is loaded
@@ -397,12 +453,6 @@ export default function PRReviewAgent(){
       return visibleIssues.filter(issue => issue.file === activeFile);
     }, [visibleIssues, activeFile]);
 
-
-    console.log('Active file:', activeFile);
-    console.log('All issues:', visibleIssues);
-    console.log('Current file issues:', currentFileIssues);
-    console.log('Code lines:', lines.length);
-
   return (
     <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
@@ -478,9 +528,8 @@ export default function PRReviewAgent(){
         </div>
         <div className="scroll-y grow pr-1 space-y-2">
           {loadingPRs ? (
-            <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
-              <span className="ml-2 text-sm font-normal text-slate-400">Loading PRs...</span>
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => <PRCardSkeleton key={i} />)}
             </div>
           ) : (
             filteredPRs.map(pr => (
@@ -496,118 +545,122 @@ export default function PRReviewAgent(){
       </div>
 
       {/* Center */}
-      <div className="sm:col-span-4 h:[78vh] sm:h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2 w-full">
-          {loadingFiles ? (
-            <div className="flex items-center gap-2 text-slate-400">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="text-xs font-normal">Loading files...</span>
-            </div>
-          ) : activeFile ? (
-            <div className="relative flex-1 min-w-0">
-              {/* Scroll buttons */}
-              <button
-                type="button"
-                onClick={() => scrollTabs(-1)}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-md bg-black/40 border border-white/10 p-1 hover:bg-white/10"
-                aria-label="Scroll left"
-              >
-                <ChevronLeft className="h-4 w-4 text-slate-300" />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollTabs(1)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-md bg-black/40 border border-white/10 p-1 hover:bg-white/10"
-                aria-label="Scroll right"
-              >
-                <ChevronRight className="h-4 w-4 text-slate-300" />
-              </button>
-
-              {/* Gradient edges */}
-              <div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-black/70 to-transparent rounded-l-md" />
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-black/70 to-transparent rounded-r-md" />
-
-              {/* Scroll container */}
-              <div ref={tabsRef} className="overflow-x-auto whitespace-nowrap no-scrollbar px-8">
-                {files.map((f) => (
-                  <button
-                    key={f}
-                    data-file={f}
-                    onClick={() => setActiveFile(f)}
-                    className={`inline-flex items-center shrink-0 max-w-[220px] mr-2 rounded-md px-2 py-1 font-mono text-xs font-normal truncate ${
-                      activeFile === f
-                        ? 'bg-white/10 text-slate-200'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                    }`}
-                    title={f}
-                  >
-                    {f}
+      <div className="sm:col-span-4 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+        <div className="flex-1 flex gap-3 overflow-hidden">
+          {isFileTreeOpen && (
+            <div className="w-2/5 max-w-[320px] flex flex-col">
+              <div className="flex items-center justify-between p-3 border-b border-white/10">
+                <span className="text-sm font-medium text-slate-200">Files</span>
+                <div className="flex items-center gap-2">
+                  <Badge className="border-sky-500/30 text-sky-300 font-medium">
+                    {loadingFiles ? <RefreshCw className="h-3 w-3 animate-spin" /> : files.length}
+                  </Badge>
+                  <button onClick={() => setIsFileTreeOpen(false)} className="text-slate-400 hover:text-slate-200">
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
-                ))}
+                </div>
+              </div>
+              <div className="scroll-y flex-1 p-2">
+                {loadingFiles ? (
+                  <div className="flex items-center justify-center h-full text-sm text-slate-400">
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" /> Loading...
+                  </div>
+                ) : files.length > 0 ? (
+                  <FileTree tree={buildFileTree(files)} onFileClick={setActiveFile} activeFile={activeFile} />
+                ) : (
+                  <div className="text-center text-xs text-slate-500 py-4">No files in PR.</div>
+                )}
               </div>
             </div>
-          ) : (
-            <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-xs font-normal text-slate-400">No file</span>
           )}
 
-          <span className="text-slate-400 font-normal">{lines.length} lines</span>
-          <div className="ml-auto flex items-center gap-3 text-xs font-medium text-slate-400">
-            <label className="flex items-center gap-2"><Switch checked={onlyAI} onChange={setOnlyAI}/> Show only AI</label>
+          {/* Code viewer */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-2 bg-black/30 rounded-t-xl border-b border-white/10">
+              <div className="flex items-center gap-2">
+                {!isFileTreeOpen && (
+                  <button onClick={() => setIsFileTreeOpen(true)} className="text-slate-400 hover:text-slate-200">
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                )}
+                <span className="font-mono text-sm text-slate-300 truncate" title={activeFile}>{activeFile || 'No file selected'}</span>
+              </div>
+              <span className="text-xs text-slate-400">{lines.length} lines</span>
+            </div>
+            <div className="grow overflow-hidden rounded-b-xl border border-white/10 bg-black/30">
+              {loadingFiles ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
+                  <span className="ml-3 text-slate-400 font-normal">Loading file...</span>
+                </div>
+              ) : (
+                <div className="scroll-y h-full">
+                  <pre className="relative block w-full font-mono text-[12.5px] font-normal leading-6">
+                    {lines.map((text, idx) => {
+                      const lineNo = idx + 1;
+                      const issue = currentFileIssues.find(i => i.line === lineNo);
+                      const isIssue = Boolean(issue);
+                      const isExpanded = expandedIssue === lineNo;
+
+                      return (
+                        <React.Fragment key={lineNo}>
+                          <div
+                            ref={el => lineRefs.current[lineNo] = el}
+                            className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 transition-colors ${ 
+                              isIssue ? 'bg-red-500/10 cursor-pointer hover:bg-red-500/20' : ''
+                            } ${isExpanded ? 'bg-red-500/20' : ''}`}
+                            onClick={() => isIssue && setExpandedIssue(isExpanded ? null : lineNo)}
+                          >
+                            <div className="select-none text-right text-slate-500 flex items-center justify-end">
+                              {isIssue && <AlertTriangle className="h-3.5 w-3.5 text-red-400 mr-2" />}
+                              {lineNo}
+                            </div>
+                            <div className="whitespace-pre text-slate-200 font-mono font-normal">
+                              {text || ' '}
+                            </div>
+                          </div>
+                          {isExpanded && issue && (
+                            <div className="bg-black/50 border-t border-b border-red-500/30 p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge className={`${severityTone[issue.severity]} font-medium text-xs px-2 py-1 shrink-0`}>
+                                      {issue.severity}
+                                    </Badge>
+                                    <h4 className="text-sm font-semibold text-slate-200 leading-tight">
+                                      {issue.title}
+                                    </h4>
+                                  </div>
+                                  <p className="text-xs font-normal text-slate-300 leading-relaxed break-words">
+                                    {issue.description}
+                                  </p>
+                                </div>
+                                {issue.patch && (
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowFix(issue);
+                                    }}
+                                    size="sm"
+                                    className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-white shrink-0"
+                                  >
+                                    <Wand2 className="h-3 w-3" />
+                                    Fix
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </pre>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-           {/* Code viewer */}
-           <div className="grow overflow-hidden rounded-xl border border-white/10 bg-black/30">
-          {loadingFiles ? (
-            <div className="flex items-center justify-center h-full">
-              <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
-              <span className="ml-3 text-slate-400 font-normal">Loading file contents...</span>
-            </div>
-          ) : (
-            <div className="scroll-y h-full">
-              <pre className="relative block w-full font-mono text-[12.5px] font-normal leading-6">
-                {lines.map((text, idx)=>{
-                  const lineNo = idx+1;
-                  // Use the filtered issues for the current file
-                  const issue = currentFileIssues.find(i => i.line === lineNo);
-                  const isIssue = Boolean(issue);
-                  return (
-                    <div key={lineNo} ref={el=>lineRefs.current[lineNo]=el} className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 ${isIssue?'bg-red-500/5':''}`}>
-                      <div className="select-none text-right text-slate-500 font-mono font-normal">{lineNo}</div>
-                      <div className="whitespace-pre text-slate-200 font-mono font-normal">
-                        {text || ' '}
-                        {issue && (
-                          <button onClick={()=>setShowFix(issue)} className={`ml-3 inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium ${severityTone[issue.severity]}`}>
-                            <AlertTriangle className="h-[14px] w-[14px]"/> {issue.title}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </pre>
-            </div>
-          )}
         </div>
-
-        <div className="mt-3 flex items-center gap-2">
-          <Button 
-            onClick={runAIReview} 
-            disabled={loadingReview}
-            className="flex items-center gap-2 font-medium"
-          >
-            {loadingReview ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {loadingReview ? 'Running Review...' : 'Re-run AI Review'}
-          </Button>
-          <Button className="bg-emerald-600 hover:bg-emerald-500 border-emerald-500/30 font-medium"><Check className="h-4 w-4"/> Approve</Button>
-          <Button className="bg-red-600 hover:bg-red-500 border-red-500/30 font-medium"><XCircle className="h-4 w-4"/> Request Changes</Button>
-        </div>
-      </div>
-
      {/* Right */}
      <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-3">
@@ -617,8 +670,8 @@ export default function PRReviewAgent(){
         
         {/* Summary Section */}
         <div className="mb-4 rounded-xl border border-white/10 bg-black/40 p-3">
-          <div className="text-sm font-normal text-slate-300 leading-relaxed break-words">
-            {summary || 'Run AI review to see insights.'}
+          <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown>{summary || 'Run AI review to see insights.'}</ReactMarkdown>
           </div>
         </div>
 
@@ -627,10 +680,17 @@ export default function PRReviewAgent(){
           {visibleIssues.map(issue => (
             <div 
               key={issue.id} 
-              className={`rounded-xl border p-4 transition-colors ${
-                issue.file === activeFile 
-                  ? 'border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10' 
-                  : 'border-white/10 bg-black/30 hover:bg-black/40'
+              onClick={() => {
+                setActiveFile(issue.file);
+                scrollToLine(issue.line);
+                setExpandedIssue(issue.line);
+              }}
+              className={`rounded-xl border p-4 transition-colors cursor-pointer ${ 
+                issue.file === activeFile && expandedIssue === issue.line
+                  ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-500/30'
+                  : issue.file === activeFile 
+                    ? 'border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10' 
+                    : 'border-white/10 bg-black/30 hover:bg-black/40'
               }`}
             >
               <div className="space-y-3">
@@ -646,7 +706,10 @@ export default function PRReviewAgent(){
                   </div>
                   {issue.patch && (
                     <Button 
-                      onClick={() => setShowFix(issue)} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowFix(issue);
+                      }} 
                       size="sm" 
                       className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-white shrink-0"
                     >
@@ -670,7 +733,7 @@ export default function PRReviewAgent(){
                   {issue.file && (
                     <>
                       <span className="text-slate-600">•</span>
-                      <span className={`flex items-center gap-1 font-mono ${
+                      <span className={`flex items-center gap-1 font-mono ${ 
                         issue.file === activeFile ? 'text-sky-300' : 'text-slate-400'
                       }`}>
                         <FileText className="h-3 w-3" />
@@ -713,7 +776,7 @@ export default function PRReviewAgent(){
             <div className="flex-1 overflow-y-auto space-y-3 mb-4">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm font-normal ${
+                  <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm font-normal ${ 
                     msg.role === 'user' 
                       ? 'bg-sky-500/20 text-sky-200' 
                       : 'bg-white/10 text-slate-200'
@@ -742,42 +805,44 @@ export default function PRReviewAgent(){
         </div>
       )}
 
-      {/* Fix Modal */}
-      {showFix && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-black/90 border border-white/10 rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-200">Apply Fix</h3>
-              <button onClick={() => setShowFix(null)} className="text-slate-400 hover:text-slate-200">
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Before:</h4>
-                <pre className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm font-mono font-normal text-red-200">
-                  {showFix.patch.before}
-                </pre>
+    
+    {/* Fix Modal */}
+    {showFix && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-black/90 border border-white/10 rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-200">Apply Fix</h3>
+                <button onClick={() => setShowFix(null)} className="text-slate-400 hover:text-slate-200">
+                  <XCircle className="h-5 w-5" />
+                </button>
               </div>
-              <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">After:</h4>
-                <pre className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm font-mono font-normal text-green-200">
-                  {showFix.patch.after}
-                </pre>
+              <div className="flex-1 overflow-y-auto space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">Before:</h4>
+                  <pre className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm font-mono font-normal text-red-200">
+                    {showFix.patch.before}
+                  </pre>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-slate-300 mb-2">After:</h4>
+                  <pre className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm font-mono font-normal text-green-200">
+                    {showFix.patch.after}
+                  </pre>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button onClick={() => applyPatch(showFix)} className="bg-green-600 hover:bg-green-500 border-green-500/30 font-medium">
-                <Check className="h-4 w-4" />
-                Apply Fix
-              </Button>
-              <Button onClick={() => setShowFix(null)} variant="outline" className="font-medium">
-                Cancel
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button onClick={() => applyPatch(showFix)} className="bg-green-600 hover:bg-green-500 border-green-500/30 font-medium">
+                  <Check className="h-4 w-4" />
+                  Apply Fix
+                </Button>
+                <Button onClick={() => setShowFix(null)} variant="outline" className="font-medium">
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        ) }
+  </div>);
+  }
+    
+     
