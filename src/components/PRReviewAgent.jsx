@@ -176,6 +176,7 @@ export default function PRReviewAgent(){
   React.useEffect(() => {
     if (!selectedPR) {
       setFileError(null);
+      setLoadingReview(false);
       return;
     }
 
@@ -208,10 +209,12 @@ export default function PRReviewAgent(){
         setActiveFile(first);
         setCode(first ? map[first] || '' : '');
         setFileError(null);
+        runAIReview();
       })
       .catch((err) => {
         console.error(err);
         setFileError('Failed to load files');
+        setLoadingReview(false);
       })
       .finally(() => setLoadingFiles(false));
   }, [selectedPR?.id]);
@@ -223,11 +226,7 @@ export default function PRReviewAgent(){
     setExpandedIssue(null);
   }, [activeFile, contents]);
 
-  // Run AI review only after all files have finished loading
-  React.useEffect(() => {
-    if (!selectedPR || loadingFiles) return;
-    runAIReview();
-  }, [selectedPR, loadingFiles]);
+  // Run AI review is triggered after contents load in the above effect
 
   const lines = useMemo(() => (code || '').split('\n'), [code]);
   const lineRefs = useRef({});
@@ -296,6 +295,10 @@ export default function PRReviewAgent(){
 
   async function runAIReview(){
     if(!selectedPR) return;
+    if(!files.length){
+      setLoadingReview(false);
+      return;
+    }
 
     const commitCount = selectedPR.commit ?? selectedPR.commits ?? 0;
     const updatedDate = selectedPR.updatedAt ?? selectedPR.updated ?? selectedPR.updatedAgo ?? '';
