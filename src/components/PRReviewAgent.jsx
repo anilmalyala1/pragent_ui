@@ -20,24 +20,43 @@ const severityTone = {
   minor: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
 };
 
+const severityOrder = {
+  critical: 1,
+  high: 2,
+  medium: 3,
+  low: 4,
+  minor: 5,
+};
+
 import {
-  GitBranch, GitCommit, FileText, Clock, Hash, Bot as BotIcon, User
+  GitBranch,
+  GitCommit,
+  FileText,
+  Clock,
+  Hash,
+  Bot as BotIcon,
+  User,
+  ChevronsUpDown as ToggleIcon,
 } from 'lucide-react';
 
 function PRCard({ pr, selected, onClick }) {
+  const [expanded, setExpanded] = useState(false);
   const fileCount = Array.isArray(pr.files) ? pr.files.length : 0;
   const firstFiles = (pr.files || []).slice(0, 3);
   const overflow = Math.max(0, fileCount - firstFiles.length);
   const avatar = pr.author ? `https://github.com/${pr.author}.png?size=40` : null;
 
   return (
-    <button
+    <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
       aria-selected={selected}
-      className={`w-full text-left rounded-lg border px-2.5 py-1.5 transition
-        ${selected
+      className={`w-full text-left rounded-lg border px-2.5 py-1.5 transition ${
+        selected
           ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-400/30'
-          : 'border-white/10 bg-black/30 hover:bg-white/5'}`}
+          : 'border-white/10 bg-black/30 hover:bg-white/5'
+      }`}
     >
       {/* Title row */}
       <div className="flex items-start gap-1.5">
@@ -53,30 +72,81 @@ function PRCard({ pr, selected, onClick }) {
               <Clock className="h-3.5 w-3.5" />
               {pr.updatedAgo}
             </span>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                setExpanded(v => !v);
+              }}
+              className="ml-1 text-slate-400 hover:text-slate-200"
+              aria-label={expanded ? 'Collapse metadata' : 'Expand metadata'}
+            >
+              <ToggleIcon className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
           </div>
 
-          {/* Meta row */}
-          <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
-            <span title={pr.repo} className="truncate">{pr.repo}</span>
-            <span className="text-slate-600">•</span>
-            <span className="inline-flex items-center gap-1 truncate" title={pr.branch}>
-              <GitBranch className="h-3.5 w-3.5" />
-              {pr.branch}
-            </span>
-            <span className="text-slate-600">•</span>
-            <span className="inline-flex items-center gap-1">
-              <Hash className="h-3.5 w-3.5" />#{pr.id}
-            </span>
-            {pr.headSha && (
-              <>
-                <span className="text-slate-600">•</span>
-                <span className="inline-flex items-center gap-1" title={pr.headSha}>
-                  <Hash className="h-3.5 w-3.5" />
-                  {String(pr.headSha).slice(0, 7)}
+          {expanded && (
+            <>
+              {/* Meta row */}
+              <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
+                <span title={pr.repo} className="truncate">
+                  {pr.repo}
                 </span>
-              </>
-            )}
-          </div>
+                <span className="text-slate-600">•</span>
+                <span className="inline-flex items-center gap-1 truncate" title={pr.branch}>
+                  <GitBranch className="h-3.5 w-3.5" />
+                  {pr.branch}
+                </span>
+                <span className="text-slate-600">•</span>
+                <span className="inline-flex items-center gap-1">
+                  <Hash className="h-3.5 w-3.5" />#{pr.id}
+                </span>
+                {pr.headSha && (
+                  <>
+                    <span className="text-slate-600">•</span>
+                    <span className="inline-flex items-center gap-1" title={pr.headSha}>
+                      <Hash className="h-3.5 w-3.5" />
+                      {String(pr.headSha).slice(0, 7)}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Stats row */}
+              <div className="mt-1.5 flex items-center gap-2.5 text-xs text-slate-400">
+                <span className="inline-flex items-center gap-1">
+                  <GitCommit className="h-3.5 w-3.5" />
+                  {pr.commit ?? 0} commit{(pr.commit ?? 0) === 1 ? '' : 's'}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" />
+                  {fileCount} file{fileCount === 1 ? '' : 's'}
+                </span>
+                <span className="ml-auto inline-flex items-center gap-1 text-slate-500">
+                  by <span className="text-slate-300">{pr.author || 'unknown'}</span>
+                </span>
+              </div>
+
+              {/* File chips preview */}
+              {fileCount > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {firstFiles.map(name => (
+                    <span
+                      key={name}
+                      title={name}
+                      className="max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-1 py-0.5 font-mono text-[10px] text-slate-300"
+                    >
+                      {name}
+                    </span>
+                  ))}
+                  {overflow > 0 && (
+                    <span className="rounded-md border border-white/10 bg-black/20 px-1 py-0.5 text-[10px] text-slate-400">
+                      +{overflow} more
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Avatar */}
@@ -94,42 +164,7 @@ function PRCard({ pr, selected, onClick }) {
           )}
         </div>
       </div>
-
-      {/* Stats row */}
-      <div className="mt-1.5 flex items-center gap-2.5 text-xs text-slate-400">
-        <span className="inline-flex items-center gap-1">
-          <GitCommit className="h-3.5 w-3.5" />
-          {pr.commit ?? 0} commit{(pr.commit ?? 0) === 1 ? '' : 's'}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <FileText className="h-3.5 w-3.5" />
-          {fileCount} file{fileCount === 1 ? '' : 's'}
-        </span>
-        <span className="ml-auto inline-flex items-center gap-1 text-slate-500">
-          by <span className="text-slate-300">{pr.author || 'unknown'}</span>
-        </span>
-      </div>
-
-      {/* File chips preview */}
-      {fileCount > 0 && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {firstFiles.map(name => (
-            <span
-              key={name}
-              title={name}
-              className="max-w-[220px] truncate rounded-md border border-white/10 bg-black/20 px-1 py-0.5 font-mono text-[10px] text-slate-300"
-            >
-              {name}
-            </span>
-          ))}
-          {overflow > 0 && (
-            <span className="rounded-md border border-white/10 bg-black/20 px-1 py-0.5 text-[10px] text-slate-400">
-              +{overflow} more
-            </span>
-          )}
-        </div>
-      )}
-    </button>
+    </div>
   );
 }
 
@@ -263,6 +298,9 @@ export default function PRReviewAgent(){
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([{role:'assistant', text:'Hey! Ask me about any flagged issue or request a patch.'}]);
   const [expandedIssue, setExpandedIssue] = useState(null);
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const [sortBySeverity, setSortBySeverity] = useState(true);
+  const [issueIndex, setIssueIndex] = useState(-1);
 
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const [fileTreeWidth, setFileTreeWidth] = useState(260);
@@ -363,7 +401,6 @@ export default function PRReviewAgent(){
         const first = fList[0] || null;
         setActiveFile(first);
         setCode(first ? map[first] || '' : '');
-        runAIReview();
       })
       .catch(console.error)
       .finally(() => setLoadingFiles(false));
@@ -376,16 +413,29 @@ export default function PRReviewAgent(){
     setExpandedIssue(null);
   }, [activeFile, contents]);
 
-  // Run review after file/code is loaded
+  // Run AI review only after all files have finished loading
   React.useEffect(() => {
-    if (!selectedPR) return;
-    //runAIReview();
-  }, [selectedPR, activeFile]);
+    if (!selectedPR || loadingFiles) return;
+    runAIReview();
+  }, [selectedPR, loadingFiles]);
 
-  const lines = useMemo(()=> (code || '').split('\n'), [code]);
+  const lines = useMemo(() => (code || '').split('\n'), [code]);
   const lineRefs = useRef({});
 
-  const visibleIssues = issues;
+  const visibleIssues = useMemo(() => {
+    let items = issues;
+    if (severityFilter !== 'all') {
+      items = items.filter(i => i.severity === severityFilter);
+    }
+    if (sortBySeverity) {
+      items = [...items].sort(
+        (a, b) => severityOrder[a.severity] - severityOrder[b.severity]
+      );
+    }
+    return items;
+  }, [issues, severityFilter, sortBySeverity]);
+
+  const activeFileIndex = useMemo(() => files.indexOf(activeFile), [files, activeFile]);
 
   const filteredPRs = useMemo(()=>{
     let items = [...prs];
@@ -397,6 +447,15 @@ export default function PRReviewAgent(){
     if(filterMine) items = items.filter(p=>p.author==='alice'); // tweak as needed
     return items;
   },[filterAI,filterMine,search, prs]);
+
+  React.useEffect(() => {
+    if (issueIndex >= visibleIssues.length) {
+      setIssueIndex(visibleIssues.length - 1);
+    }
+    if (!visibleIssues.length) {
+      setIssueIndex(-1);
+    }
+  }, [visibleIssues, issueIndex]);
 
   function scrollToLine(n){
     const el = lineRefs.current[n];
@@ -427,6 +486,38 @@ export default function PRReviewAgent(){
 
   async function runAIReview(){
     if(!selectedPR) return;
+
+    const commitCount = selectedPR.commit ?? selectedPR.commits ?? 0;
+    const updatedDate = selectedPR.updatedAt ?? selectedPR.updated ?? selectedPR.updatedAgo ?? '';
+    const cacheKey = `aiReview:${owner}:${selectedRepo}:${selectedPR.id}`;
+
+    // Attempt to load cached review
+    try {
+      const cached = typeof localStorage !== 'undefined' ? localStorage.getItem(cacheKey) : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.commit === commitCount && parsed.updated === updatedDate) {
+          setIssues(parsed.issues || []);
+          setSummary(parsed.summary || '');
+
+          const stats = (parsed.issues || []).reduce((acc, issue) => {
+            acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+            return acc;
+          }, { critical: 0, high: 0, medium: 0, low: 0, minor: 0 });
+
+          const prId = selectedPR.id;
+          setPrs(currentPrs =>
+            currentPrs.map(p =>
+              p.id === prId ? { ...p, issueStats: stats, aiReviewed: true } : p
+            )
+          );
+          return; // use cache
+        }
+      }
+    } catch (err) {
+      console.error('Failed to read review cache', err);
+    }
+
     setLoadingReview(true);
     try {
       const res = await axios.post(
@@ -434,29 +525,81 @@ export default function PRReviewAgent(){
       );
       const reviewIssues = res.data?.issues || [];
       const reviewSummary = res.data?.summary || '';
-      
+
       setIssues(reviewIssues);
       setSummary(reviewSummary);
 
       // Calculate stats and update the PR list state
       const stats = reviewIssues.reduce((acc, issue) => {
-          acc[issue.severity] = (acc[issue.severity] || 0) + 1;
-          return acc;
+        acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+        return acc;
       }, { critical: 0, high: 0, medium: 0, low: 0, minor: 0 });
 
       const prId = selectedPR.id;
       // Only update the main PRs list. DO NOT update selectedPR state here to avoid loops.
       setPrs(currentPrs =>
-          currentPrs.map(p =>
-              p.id === prId ? { ...p, issueStats: stats, aiReviewed: true } : p
-          )
+        currentPrs.map(p =>
+          p.id === prId ? { ...p, issueStats: stats, aiReviewed: true } : p
+        )
       );
-    } catch (e) { 
-      console.error(e); 
+
+      // Cache successful response
+      try {
+        if (typeof localStorage !== 'undefined' && res.status >= 200 && res.status < 300) {
+          const toCache = {
+            issues: reviewIssues,
+            summary: reviewSummary,
+            commit: commitCount,
+            updated: updatedDate,
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(toCache));
+        }
+      } catch (err) {
+        console.error('Failed to cache review response', err);
+      }
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoadingReview(false);
     }
   }
+
+  React.useEffect(() => {
+    function handleKey(e){
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'ArrowRight') {
+          const nextIdx = (activeFileIndex + 1) % files.length;
+          if (files[nextIdx]) setActiveFile(files[nextIdx]);
+          e.preventDefault();
+        } else if (e.key === 'ArrowLeft') {
+          const prevIdx = (activeFileIndex - 1 + files.length) % files.length;
+          if (files[prevIdx]) setActiveFile(files[prevIdx]);
+          e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+          if (!visibleIssues.length) return;
+          const nextIssueIdx = (issueIndex + 1) % visibleIssues.length;
+          const issue = visibleIssues[nextIssueIdx];
+          setActiveFile(issue.file);
+          scrollToLine(issue.line);
+          setExpandedIssue(issue.line);
+          setIssueIndex(nextIssueIdx);
+          e.preventDefault();
+        } else if (e.key === 'ArrowUp') {
+          if (!visibleIssues.length) return;
+          const prevIssueIdx = (issueIndex - 1 + visibleIssues.length) % visibleIssues.length;
+          const issue = visibleIssues[prevIssueIdx];
+          setActiveFile(issue.file);
+          scrollToLine(issue.line);
+          setExpandedIssue(issue.line);
+          setIssueIndex(prevIssueIdx);
+          e.preventDefault();
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [activeFileIndex, files, visibleIssues, issueIndex]);
 
   async function applyPatch(issue){
     if(!issue.patch) return;
@@ -694,25 +837,68 @@ export default function PRReviewAgent(){
         
         {/* Summary Section */}
         <div className="mb-4 rounded-xl border border-white/10 bg-black/40 p-3">
-          <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown>{summary || 'Run AI review to see insights.'}</ReactMarkdown>
-          </div>
+          {loadingReview ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 w-1/2 bg-white/10 rounded" />
+              <div className="h-3 w-full bg-white/10 rounded" />
+              <div className="h-3 w-3/4 bg-white/10 rounded" />
+            </div>
+          ) : (
+            <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown>{summary || 'Run AI review to see insights.'}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        {/* Issue controls */}
+        <div className="flex items-center gap-2 text-xs text-slate-300 mb-3">
+          <label htmlFor="severity-filter">Severity</label>
+          <select
+            id="severity-filter"
+            value={severityFilter}
+            onChange={e => setSeverityFilter(e.target.value)}
+            className="bg-black/20 border border-white/10 rounded px-1.5 py-1 text-slate-200"
+          >
+            <option value="all">All</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="minor">Minor</option>
+          </select>
+          <Button
+            onClick={() => setSortBySeverity(s => !s)}
+            size="sm"
+            variant="outline"
+            className="h-7 px-2"
+            aria-label="Sort by severity"
+          >
+            <ChevronsUpDown className={`h-3.5 w-3.5 ${sortBySeverity ? 'text-sky-300' : ''}`} />
+          </Button>
+          <span className="ml-auto text-slate-500">Ctrl+←/→ files, Ctrl+↑/↓ issues</span>
         </div>
 
         {/* Issues List - Show all issues but highlight current file */}
         <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-          {visibleIssues.map(issue => (
-            <div 
-              key={issue.id} 
+          {loadingReview ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl border border-white/10 bg-black/20 animate-pulse"></div>
+            ))
+          ) : (
+            <>
+          {visibleIssues.map((issue, idx) => (
+            <div
+              key={issue.id}
               onClick={() => {
                 setActiveFile(issue.file);
                 scrollToLine(issue.line);
                 setExpandedIssue(issue.line);
+                setIssueIndex(idx);
               }}
-              className={`rounded-xl border p-4 transition-colors cursor-pointer ${ 
+              className={`rounded-xl border p-4 transition-colors cursor-pointer ${
                 issue.file === activeFile && expandedIssue === issue.line
                   ? 'border-sky-500/50 bg-sky-500/10 ring-1 ring-sky-500/30'
-                  : issue.file === activeFile 
+                  : issue.file === activeFile
                     ? 'border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10' 
                     : 'border-white/10 bg-black/30 hover:bg-black/40'
               }`}
@@ -775,14 +961,16 @@ export default function PRReviewAgent(){
               </div>
             </div>
           ))}
-          
+
           {/* Empty state */}
-          {visibleIssues.length === 0 && !loadingReview && (
+          {visibleIssues.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bot className="h-12 w-12 text-slate-600 mb-3" />
               <p className="text-sm font-medium text-slate-400 mb-1">No issues found</p>
               <p className="text-xs text-slate-500">Run AI review to analyze your code</p>
             </div>
+          )}
+          </>
           )}
         </div>
       </div>
