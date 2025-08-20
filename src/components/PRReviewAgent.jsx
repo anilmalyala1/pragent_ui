@@ -3,6 +3,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../apiConfig';
 import ReactMarkdown from 'react-markdown';
+import { stripHtml, allowedMarkdownElements } from '../markdown';
 import {
   AlertTriangle, Bot, Check, ChevronLeft, ChevronRight, ChevronsUpDown,
   MessageSquare, RefreshCw, Search, Wand2, XCircle, Folder, File
@@ -849,7 +850,12 @@ export default function PRReviewAgent(){
             </div>
           ) : (
             <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
-              <ReactMarkdown>{summary || 'Run AI review to see insights.'}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[stripHtml]}
+                allowedElements={allowedMarkdownElements}
+              >
+                {summary || 'Run AI review to see insights.'}
+              </ReactMarkdown>
             </div>
           )}
         </div>
