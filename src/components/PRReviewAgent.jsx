@@ -311,7 +311,7 @@ export default function PRReviewAgent(){
       })
       .catch(console.error)
       .finally(() => setLoadingFiles(false));
-  }, [selectedPR]);
+  }, [selectedPR?.id]);
 
   // Update code whenever activeFile or contents change
   React.useEffect(() => {
@@ -325,7 +325,7 @@ export default function PRReviewAgent(){
     //runAIReview();
   }, [selectedPR, activeFile]);
 
-  const lines = useMemo(()=> (code || '').split(' '), [code]);
+  const lines = useMemo(()=> (code || '').split('\n'), [code]);
   const lineRefs = useRef({});
 
   const visibleIssues = issues;
@@ -356,8 +356,25 @@ export default function PRReviewAgent(){
       const res = await axios.post(
         apiUrl('prs', `/api/review/${owner}/${selectedRepo}/${selectedPR.id}`)
       );
-      setIssues(res.data?.issues || []);
-      setSummary(res.data?.summary || '');
+      const reviewIssues = res.data?.issues || [];
+      const reviewSummary = res.data?.summary || '';
+      
+      setIssues(reviewIssues);
+      setSummary(reviewSummary);
+
+      // Calculate stats and update the PR list state
+      const stats = reviewIssues.reduce((acc, issue) => {
+          acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+          return acc;
+      }, { critical: 0, high: 0, medium: 0, low: 0, minor: 0 });
+
+      const prId = selectedPR.id;
+      // Only update the main PRs list. DO NOT update selectedPR state here to avoid loops.
+      setPrs(currentPrs =>
+          currentPrs.map(p =>
+              p.id === prId ? { ...p, issueStats: stats, aiReviewed: true } : p
+          )
+      );
     } catch (e) { 
       console.error(e); 
     } finally {
@@ -387,7 +404,7 @@ export default function PRReviewAgent(){
     console.log('Code lines:', lines.length);
 
   return (
-    <div className="grid gap-4 sm:grid-cols-12">
+    <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
       <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-2">
@@ -479,7 +496,7 @@ export default function PRReviewAgent(){
       </div>
 
       {/* Center */}
-      <div className="sm:col-span-6 h:[78vh] sm:h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+      <div className="sm:col-span-4 h:[78vh] sm:h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2 w-full">
           {loadingFiles ? (
             <div className="flex items-center gap-2 text-slate-400">
@@ -600,7 +617,7 @@ export default function PRReviewAgent(){
         
         {/* Summary Section */}
         <div className="mb-4 rounded-xl border border-white/10 bg-black/40 p-3">
-          <div className="text-sm font-normal text-slate-300 leading-relaxed">
+          <div className="text-sm font-normal text-slate-300 leading-relaxed break-words">
             {summary || 'Run AI review to see insights.'}
           </div>
         </div>
@@ -623,7 +640,7 @@ export default function PRReviewAgent(){
                     <Badge className={`${severityTone[issue.severity]} font-medium text-xs px-2 py-1 shrink-0`}>
                       {issue.severity}
                     </Badge>
-                    <h4 className="text-sm font-semibold text-slate-200 leading-tight break-words">
+                    <h4 className="text-sm font-semibold text-slate-200 leading-tight break-all">
                       {issue.title}
                     </h4>
                   </div>
@@ -640,7 +657,7 @@ export default function PRReviewAgent(){
                 </div>
 
                 {/* Description */}
-                <div className="text-xs font-normal text-slate-300 leading-relaxed">
+                <div className="text-xs font-normal text-slate-300 leading-relaxed break-words">
                   {issue.description}
                 </div>
 
