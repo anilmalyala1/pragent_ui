@@ -265,6 +265,7 @@ export default function PRReviewAgent(){
   const [expandedIssue, setExpandedIssue] = useState(null);
 
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
+  const [fileTreeWidth, setFileTreeWidth] = useState(260);
 
   // --- Close repo dropdown on outside click ---
   React.useEffect(() => {
@@ -403,6 +404,25 @@ export default function PRReviewAgent(){
     el.scrollIntoView({block:'center', behavior:'smooth'});
     el.classList.add('ring-2','ring-sky-400');
     setTimeout(()=>el.classList.remove('ring-2','ring-sky-400'),1000);
+  }
+
+  function startResizing(e){
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = fileTreeWidth;
+
+    function onMouseMove(ev){
+      const newWidth = Math.min(600, Math.max(150, startWidth + ev.clientX - startX));
+      setFileTreeWidth(newWidth);
+    }
+
+    function onMouseUp(){
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   }
 
   async function runAIReview(){
@@ -545,10 +565,10 @@ export default function PRReviewAgent(){
       </div>
 
       {/* Center */}
-      <div className="sm:col-span-5 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
-        <div className="flex-1 flex gap-3 overflow-hidden">
+      <div className="sm:col-span-6 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+        <div className="flex-1 flex overflow-hidden">
           {isFileTreeOpen && (
-            <div className="w-2/5 max-w-[320px] flex flex-col">
+            <div style={{ width: fileTreeWidth }} className="relative flex flex-col">
               <div className="flex items-center justify-between p-3 border-b border-white/10">
                 <span className="text-sm font-medium text-slate-200">Files</span>
                 <div className="flex items-center gap-2">
@@ -571,11 +591,15 @@ export default function PRReviewAgent(){
                   <div className="text-center text-xs text-slate-500 py-4">No files in PR.</div>
                 )}
               </div>
+              <div
+                className="absolute top-0 right-0 w-1 h-full cursor-col-resize bg-white/10"
+                onMouseDown={startResizing}
+              />
             </div>
           )}
 
           {/* Code viewer */}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className={`flex-1 flex flex-col overflow-hidden ${isFileTreeOpen ? 'pl-3' : ''}`}>
             <div className="flex items-center justify-between p-2 bg-black/30 rounded-t-xl border-b border-white/10">
               <div className="flex items-center gap-2">
                 {!isFileTreeOpen && (
@@ -662,7 +686,7 @@ export default function PRReviewAgent(){
         </div>
         </div>
      {/* Right */}
-      <div className="sm:col-span-3 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
+      <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
         <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-3">
           <span>AI Review</span>
           {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
