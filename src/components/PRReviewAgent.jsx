@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsUpDown,
+  Hash,
   MessageSquare,
   RefreshCw,
   Search,
@@ -462,8 +463,8 @@ export default function PRReviewAgent(){
   return (
     <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
-      <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
-        <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-2">
+      <div className="sm:col-span-2 h-[78vh] border rounded-2xl p-3 flex flex-col border-black/10 bg-black/5 dark:border-white/10 dark:bg-white/5">
+        <div className="flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           <span>Pull Requests</span>
           <Badge className="border-sky-500/30 text-sky-300 font-medium">
             {loadingPRs ? <RefreshCw className="h-3 w-3 animate-spin" /> : filteredPRs.length}
@@ -479,13 +480,13 @@ export default function PRReviewAgent(){
           <div className="relative mb-3" ref={repoDropdownRef}>
             <button
               onClick={() => setRepoDropdownOpen(!repoDropdownOpen)}
-              className="w-full flex items-center justify-between bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm font-normal text-slate-200"
+              className="w-full flex items-center justify-between bg-white border border-black/10 rounded-lg px-3 py-2 text-sm font-normal text-slate-800 dark:bg-black/40 dark:border-white/10 dark:text-slate-200"
             >
               <span className="truncate">{selectedRepo || 'Select a repository'}</span>
-              <ChevronsUpDown className="h-4 w-4 text-slate-400 shrink-0" />
+              <ChevronsUpDown className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />
             </button>
             {repoDropdownOpen && (
-              <div className="absolute z-10 mt-1 w-full bg-[#1c1c1c] border border-white/20 rounded-lg shadow-lg">
+              <div className="absolute z-10 mt-1 w-full bg-white border border-black/20 rounded-lg shadow-lg dark:bg-[#1c1c1c] dark:border-white/20">
                 <div className="p-2">
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
@@ -494,7 +495,7 @@ export default function PRReviewAgent(){
                       placeholder="Search repositories..."
                       value={repoSearch}
                       onChange={(e) => setRepoSearch(e.target.value)}
-                      className="w-full bg-black/40 pl-8 pr-2 py-2 rounded-lg text-sm font-normal placeholder:text-slate-500 border border-white/10"
+                      className="w-full bg-white pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-slate-800 placeholder:text-slate-500 border border-black/10 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"
                     />
                   </div>
                 </div>
@@ -508,7 +509,7 @@ export default function PRReviewAgent(){
                           setRepoDropdownOpen(false);
                           setRepoSearch('');
                         }}
-                        className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-200 hover:bg-white/10"
+                        className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-800 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/10"
                       >
                         <span className="flex-1 truncate">{repo}</span>
                         {repo === selectedRepo && <Check className="h-4 w-4 text-sky-400" />}
@@ -530,16 +531,16 @@ export default function PRReviewAgent(){
         <div className="flex items-center gap-2 mb-3">
           <div className="relative w-full">
             <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search PRs…" className="w-full bg-black/40 pl-8 pr-2 py-2 rounded-lg text-sm font-normal placeholder:text-slate-500 border border-white/10"/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search PRs…" className="w-full bg-white pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-slate-800 placeholder:text-slate-500 border border-black/10 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"/>
           </div>
         </div>
-        <div className="flex items-center justify-between text-xs font-medium text-slate-400 mb-2">
+        <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
           <label className="flex items-center gap-2"><Switch checked={filterMine} onChange={setFilterMine}/> Mine</label>
           <label className="flex items-center gap-2"><Switch checked={filterAI} onChange={setFilterAI}/> Has AI</label>
         </div>
         <div className="scroll-y grow pr-1 space-y-2">
           {prError && (
-            <div className="text-xs text-red-400 flex items-center p-2 bg-red-500/10 rounded">
+            <div className="text-xs text-red-600 dark:text-red-400 flex items-center p-2 bg-red-500/10 rounded">
               <XCircle className="h-3 w-3 mr-1" /> {prError}
             </div>
           )}
