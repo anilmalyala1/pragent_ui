@@ -11,7 +11,7 @@ export default function App() {
         <div className="px-4 py-3 flex items-center gap-2 w-full justify-between">
           <div className="flex items-center gap-2">
             <GitPullRequest className="h-5 w-5 text-sky-400" />
-            <div className="text-sm text-slate-700 dark:text-slate-400">PR Review Agent • LangGraph (Demo)</div>
+            <div className="text-sm text-gray-800 dark:text-slate-400">PR Review Agent • LangGraph (Demo)</div>
           </div>
           <ThemeToggle />
         </div>
