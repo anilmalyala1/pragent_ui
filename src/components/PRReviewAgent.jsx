@@ -26,11 +26,16 @@ import FileTree, { buildFileTree } from './FileTree';
 import { FileText } from 'lucide-react';
 
 const severityTone = {
-  critical: 'bg-red-500/15 text-red-300 border-red-500/30',
-  high: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
-  medium: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
-  low: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
-  minor: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  critical:
+    'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30',
+  high:
+    'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30',
+  medium:
+    'bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-500/15 dark:text-yellow-300 dark:border-yellow-500/30',
+  low:
+    'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30',
+  minor:
+    'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30',
 };
 
 const severityOrder = {
@@ -463,7 +468,7 @@ export default function PRReviewAgent(){
   return (
     <div className="grid gap-4 sm:grid-cols-10">
       {/* Left */}
-      <div className="sm:col-span-2 h-[78vh] border rounded-2xl p-3 flex flex-col border-[#e0e0e0] bg-[#f8f9fa] shadow-sm dark:border-white/10 dark:bg-white/5">
+      <div className="sm:col-span-2 h-[78vh] border rounded-2xl p-3 flex flex-col border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
         <div className="flex items-center justify-between text-sm font-medium text-gray-800 dark:text-slate-300 mb-2">
           <span>Pull Requests</span>
           <Badge className="border-sky-500/30 text-sky-300 font-medium">
@@ -495,7 +500,7 @@ export default function PRReviewAgent(){
                       placeholder="Search repositories..."
                       value={repoSearch}
                       onChange={(e) => setRepoSearch(e.target.value)}
-                      className="w-full bg-[#f5f5f5] pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-gray-800 placeholder:text-gray-500 border border-gray-300 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"
+                      className="w-full bg-gray-50 pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-gray-800 placeholder:text-gray-500 border border-gray-300 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"
                     />
                   </div>
                 </div>
@@ -511,7 +516,7 @@ export default function PRReviewAgent(){
                         }}
                         className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-white/10"
                       >
-                        <FileText className="h-4 w-4 text-gray-600" />
+                        <FileText className="h-4 w-4 text-gray-600 dark:text-slate-400" />
                         <span className="flex-1 truncate">{repo}</span>
                         {repo === selectedRepo && <Check className="h-4 w-4 text-sky-400" />}
                       </button>
@@ -613,7 +618,7 @@ export default function PRReviewAgent(){
 
           {/* Code viewer */}
           <div className={`flex-1 flex flex-col overflow-hidden ${isFileTreeOpen ? 'pl-3' : ''}`}>
-            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-t-xl border-b border-gray-200">
+            <div className="flex items-center justify-between p-2 bg-gray-50 rounded-t-xl border-b border-gray-200 dark:bg-white/5 dark:border-white/10">
               <div className="flex items-center gap-2">
                 {!isFileTreeOpen && (
                   <button onClick={() => setIsFileTreeOpen(true)} className="text-gray-600 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200">
@@ -624,7 +629,7 @@ export default function PRReviewAgent(){
               </div>
               <span className="text-xs text-gray-600 dark:text-slate-400">{lines.length} lines</span>
             </div>
-            <div className="grow overflow-hidden rounded-b-xl border border-gray-200 bg-white">
+            <div className="grow overflow-hidden rounded-b-xl border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-900">
               {loadingFiles ? (
                 <div className="flex items-center justify-center h-full">
                   <RefreshCw className="h-8 w-8 animate-spin text-slate-600 dark:text-slate-400" />
@@ -646,14 +651,16 @@ export default function PRReviewAgent(){
                       return (
                         <React.Fragment key={lineNo}>
                           <div
-                            ref={el => lineRefs.current[lineNo] = el}
+                            ref={el => (lineRefs.current[lineNo] = el)}
                             className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 transition-colors ${
-                              isIssue ? 'bg-yellow-100 cursor-pointer hover:bg-yellow-200' : ''
-                            } ${isExpanded ? 'bg-yellow-200' : ''}`}
+                              isIssue
+                                ? 'bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-800/40 cursor-pointer'
+                                : ''
+                            } ${isExpanded ? 'bg-yellow-200 dark:bg-yellow-800/40' : ''}`}
                             onClick={() => isIssue && setExpandedIssue(isExpanded ? null : lineNo)}
                           >
                             <div className="select-none text-right text-gray-400 dark:text-slate-500 flex items-center justify-end">
-                              {isIssue && <AlertTriangle className="h-3.5 w-3.5 text-red-600 mr-2" />}
+                              {isIssue && <AlertTriangle className="h-3.5 w-3.5 text-red-600 dark:text-red-400 mr-2" />}
                               {lineNo}
                             </div>
                             <div className="whitespace-pre text-gray-800 dark:text-slate-200 font-mono font-normal">
@@ -661,7 +668,7 @@ export default function PRReviewAgent(){
                             </div>
                           </div>
                           {isExpanded && issue && (
-                            <div className="bg-yellow-50 border-t border-b border-yellow-200 p-3">
+                            <div className="bg-yellow-50 border-t border-b border-yellow-200 p-3 dark:bg-yellow-900/20 dark:border-yellow-800/40">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
@@ -703,7 +710,7 @@ export default function PRReviewAgent(){
         </div>
         </div>
      {/* Right */}
-      <div className="sm:col-span-2 h-[78vh] border border-[#e0e0e0] rounded-2xl bg-[#f8f9fa] p-3 flex flex-col shadow-sm">
+      <div className="sm:col-span-2 h-[78vh] border rounded-2xl bg-white p-3 flex flex-col shadow-sm border-gray-200 dark:border-white/10 dark:bg-white/5">
         <div className="flex items-center justify-between text-sm font-medium text-gray-800 dark:text-slate-300 mb-3">
           <span>AI Review</span>
           <div className="flex items-center gap-2">
@@ -730,7 +737,7 @@ export default function PRReviewAgent(){
         )}
 
         {/* Summary Section */}
-        <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3">
+        <div className="mb-4 max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/5">
           {loadingReview ? (
             <div className="space-y-2 animate-pulse">
               <div className="h-4 w-1/2 bg-white/10 rounded" />
@@ -796,10 +803,10 @@ export default function PRReviewAgent(){
               }}
               className={`rounded-xl border p-4 transition-colors cursor-pointer ${
                 issue.file === activeFile && expandedIssue === issue.line
-                  ? 'border-sky-500/50 bg-blue-50 ring-1 ring-sky-500/30'
+                  ? 'border-sky-500/50 bg-blue-50 ring-1 ring-sky-500/30 dark:bg-sky-500/20 dark:ring-sky-500/30'
                   : issue.file === activeFile
-                    ? 'border-sky-500/30 bg-blue-50 hover:bg-blue-100'
-                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                    ? 'border-sky-500/30 bg-blue-50 hover:bg-blue-100 dark:border-sky-500/30 dark:bg-sky-500/20 dark:hover:bg-sky-500/30'
+                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
               }`}
             >
               <div className="space-y-3">
@@ -864,7 +871,7 @@ export default function PRReviewAgent(){
           {/* Empty state */}
           {visibleIssues.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Bot className="h-12 w-12 text-gray-600 mb-3" />
+              <Bot className="h-12 w-12 text-gray-600 dark:text-slate-400 mb-3" />
               <p className="text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">No issues found</p>
               <p className="text-xs text-gray-700 dark:text-slate-500">Run AI review to analyze your code</p>
             </div>
