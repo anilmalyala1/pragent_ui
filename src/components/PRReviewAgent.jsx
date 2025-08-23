@@ -24,6 +24,7 @@ import Badge from './ui/Badge';
 import Switch from './ui/Switch';
 import PRCard, { PRCardSkeleton } from './PRCard';
 import FileTree, { buildFileTree } from './FileTree';
+import { FileText } from 'lucide-react';
 
 const severityTone = {
   critical: 'bg-red-500/15 text-red-300 border-red-500/30',
