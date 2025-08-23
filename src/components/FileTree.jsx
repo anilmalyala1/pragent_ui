@@ -58,7 +58,7 @@ export default function FileTree({ tree, onFileClick, activeFile }) {
           onClick={() => onFileClick(item.path)}
             className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
               activeFile === item.path
-                ? 'bg-blue-100 text-[#0d6efd] dark:text-blue-300'
+                ? 'bg-blue-100 text-[#0d6efd] dark:bg-sky-500/20 dark:text-blue-300'
                 : 'text-gray-800 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-white/5'
             }`}
           title={item.path}
