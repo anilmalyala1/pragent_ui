@@ -474,8 +474,8 @@ export default function PRReviewAgent(){
         {/* Repository dropdown */}
         {loadingRepos ? (
           <div className="flex items-center justify-center mb-3 h-10">
-            <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />
-            <span className="ml-2 text-sm text-slate-400">Loading repos…</span>
+            <RefreshCw className="h-4 w-4 animate-spin text-slate-600 dark:text-slate-400" />
+            <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">Loading repos…</span>
           </div>
         ) : (
           <div className="relative mb-3" ref={repoDropdownRef}>
@@ -484,13 +484,13 @@ export default function PRReviewAgent(){
               className="w-full flex items-center justify-between bg-white border border-black/10 rounded-lg px-3 py-2 text-sm font-normal text-slate-800 dark:bg-black/40 dark:border-white/10 dark:text-slate-200"
             >
               <span className="truncate">{selectedRepo || 'Select a repository'}</span>
-              <ChevronsUpDown className="h-4 w-4 text-slate-500 dark:text-slate-400 shrink-0" />
+              <ChevronsUpDown className="h-4 w-4 text-slate-700 dark:text-slate-400 shrink-0" />
             </button>
             {repoDropdownOpen && (
               <div className="absolute z-10 mt-1 w-full bg-white border border-black/20 rounded-lg shadow-lg dark:bg-[#1c1c1c] dark:border-white/20">
                 <div className="p-2">
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
+                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-600 dark:text-slate-400"/>
                     <input
                       type="text"
                       placeholder="Search repositories..."
@@ -517,7 +517,7 @@ export default function PRReviewAgent(){
                       </button>
                     ))
                   ) : (
-                    <div className="text-center text-xs text-slate-500 py-2">No repositories found.</div>
+                    <div className="text-center text-xs text-slate-700 dark:text-slate-500 py-2">No repositories found.</div>
                   )}
                 </div>
               </div>
@@ -531,11 +531,11 @@ export default function PRReviewAgent(){
         )}
         <div className="flex items-center gap-2 mb-3">
           <div className="relative w-full">
-            <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
+            <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-600 dark:text-slate-400"/>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search PRs…" className="w-full bg-white pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-slate-800 placeholder:text-slate-500 border border-black/10 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"/>
           </div>
         </div>
-        <div className="flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
+        <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-400 mb-2">
           <label className="flex items-center gap-2"><Switch checked={filterMine} onChange={setFilterMine}/> Mine</label>
           <label className="flex items-center gap-2"><Switch checked={filterAI} onChange={setFilterAI}/> Has AI</label>
         </div>
@@ -568,12 +568,12 @@ export default function PRReviewAgent(){
           {isFileTreeOpen && (
             <div style={{ width: fileTreeWidth }} className="relative flex flex-col">
               <div className="flex items-center justify-between p-3 border-b border-white/10">
-                <span className="text-sm font-medium text-slate-200">Files</span>
+                <span className="text-sm font-medium text-slate-800 dark:text-slate-200">Files</span>
                 <div className="flex items-center gap-2">
                   <Badge className="border-sky-500/30 text-sky-300 font-medium">
                     {loadingFiles ? <RefreshCw className="h-3 w-3 animate-spin" /> : files.length}
                   </Badge>
-                  <button onClick={() => setIsFileTreeOpen(false)} className="text-slate-400 hover:text-slate-200">
+                  <button onClick={() => setIsFileTreeOpen(false)} className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                 </div>
@@ -585,13 +585,13 @@ export default function PRReviewAgent(){
                   </div>
                 )}
                 {loadingFiles ? (
-                  <div className="flex items-center justify-center h-full text-sm text-slate-400">
+                  <div className="flex items-center justify-center h-full text-sm text-slate-600 dark:text-slate-400">
                     <RefreshCw className="h-4 w-4 animate-spin mr-2" /> Loading...
                   </div>
                 ) : files.length > 0 ? (
                   <FileTree tree={buildFileTree(files)} onFileClick={setActiveFile} activeFile={activeFile} />
                 ) : (
-                  <div className="text-center text-xs text-slate-500 py-4">No files in PR.</div>
+                  <div className="text-center text-xs text-slate-700 dark:text-slate-500 py-4">No files in PR.</div>
                 )}
               </div>
               <div
@@ -606,19 +606,19 @@ export default function PRReviewAgent(){
             <div className="flex items-center justify-between p-2 bg-black/30 rounded-t-xl border-b border-white/10">
               <div className="flex items-center gap-2">
                 {!isFileTreeOpen && (
-                  <button onClick={() => setIsFileTreeOpen(true)} className="text-slate-400 hover:text-slate-200">
+                  <button onClick={() => setIsFileTreeOpen(true)} className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 )}
-                <span className="font-mono text-sm text-slate-300 truncate" title={activeFile}>{activeFile || 'No file selected'}</span>
+                <span className="font-mono text-sm text-slate-700 dark:text-slate-300 truncate" title={activeFile}>{activeFile || 'No file selected'}</span>
               </div>
-              <span className="text-xs text-slate-400">{lines.length} lines</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">{lines.length} lines</span>
             </div>
             <div className="grow overflow-hidden rounded-b-xl border border-white/10 bg-black/30">
               {loadingFiles ? (
                 <div className="flex items-center justify-center h-full">
-                  <RefreshCw className="h-8 w-8 animate-spin text-slate-400" />
-                  <span className="ml-3 text-slate-400 font-normal">Loading file...</span>
+                  <RefreshCw className="h-8 w-8 animate-spin text-slate-600 dark:text-slate-400" />
+                  <span className="ml-3 text-slate-600 dark:text-slate-400 font-normal">Loading file...</span>
                 </div>
               ) : fileError ? (
                 <div className="flex items-center justify-center h-full text-red-400 text-sm">
@@ -642,11 +642,11 @@ export default function PRReviewAgent(){
                             } ${isExpanded ? 'bg-red-500/20' : ''}`}
                             onClick={() => isIssue && setExpandedIssue(isExpanded ? null : lineNo)}
                           >
-                            <div className="select-none text-right text-slate-500 flex items-center justify-end">
+                            <div className="select-none text-right text-slate-700 dark:text-slate-500 flex items-center justify-end">
                               {isIssue && <AlertTriangle className="h-3.5 w-3.5 text-red-400 mr-2" />}
                               {lineNo}
                             </div>
-                            <div className="whitespace-pre text-slate-200 font-mono font-normal">
+                            <div className="whitespace-pre text-slate-800 dark:text-slate-200 font-mono font-normal">
                               {text || ' '}
                             </div>
                           </div>
@@ -658,11 +658,11 @@ export default function PRReviewAgent(){
                                     <Badge className={`${severityTone[issue.severity]} font-medium text-xs px-2 py-1 shrink-0`}>
                                       {issue.severity}
                                     </Badge>
-                                    <h4 className="text-sm font-semibold text-slate-200 leading-tight">
+                                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight">
                                       {issue.title}
                                     </h4>
                                   </div>
-                                  <p className="text-xs font-normal text-slate-300 leading-relaxed break-words">
+                                  <p className="text-xs font-normal text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                                     {issue.description}
                                   </p>
                                 </div>
@@ -673,7 +673,7 @@ export default function PRReviewAgent(){
                                       setShowFix(issue);
                                     }}
                                     size="sm"
-                                    className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-white shrink-0"
+                                    className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-black dark:text-white shrink-0"
                                   >
                                     <Wand2 className="h-3 w-3" />
                                     Fix
@@ -694,10 +694,10 @@ export default function PRReviewAgent(){
         </div>
      {/* Right */}
       <div className="sm:col-span-2 h-[78vh] border border-white/10 rounded-2xl bg-white/5 p-3 flex flex-col">
-        <div className="flex items-center justify-between text-sm font-medium text-slate-300 mb-3">
+        <div className="flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
           <span>AI Review</span>
           <div className="flex items-center gap-2">
-            {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-400" />}
+            {loadingReview && <RefreshCw className="h-4 w-4 animate-spin text-slate-600 dark:text-slate-400" />}
             <Button
               onClick={runAIReview}
               size="sm"
@@ -728,7 +728,7 @@ export default function PRReviewAgent(){
               <div className="h-3 w-3/4 bg-white/10 rounded" />
             </div>
           ) : (
-            <div className="text-sm font-normal text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
+            <div className="text-sm font-normal text-slate-700 dark:text-slate-300 leading-relaxed break-words prose prose-invert prose-sm max-w-none">
               <ReactMarkdown
                 remarkPlugins={[stripHtml]}
                 allowedElements={allowedMarkdownElements}
@@ -740,13 +740,13 @@ export default function PRReviewAgent(){
         </div>
 
         {/* Issue controls */}
-        <div className="flex items-center gap-2 text-xs text-slate-300 mb-3">
+        <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 mb-3">
           <label htmlFor="severity-filter">Severity</label>
           <select
             id="severity-filter"
             value={severityFilter}
             onChange={e => setSeverityFilter(e.target.value)}
-            className="bg-black/20 border border-white/10 rounded px-1.5 py-1 text-slate-200"
+            className="bg-black/20 border border-white/10 rounded px-1.5 py-1 text-slate-800 dark:text-slate-200"
           >
             <option value="all">All</option>
             <option value="critical">Critical</option>
@@ -764,7 +764,7 @@ export default function PRReviewAgent(){
           >
             <ChevronsUpDown className={`h-3.5 w-3.5 ${sortBySeverity ? 'text-sky-300' : ''}`} />
           </Button>
-          <span className="ml-auto text-slate-500">Ctrl+←/→ files, Ctrl+↑/↓ issues</span>
+          <span className="ml-auto text-slate-700 dark:text-slate-500">Ctrl+←/→ files, Ctrl+↑/↓ issues</span>
         </div>
 
         {/* Issues List - Show all issues but highlight current file */}
@@ -799,7 +799,7 @@ export default function PRReviewAgent(){
                     <Badge className={`${severityTone[issue.severity]} font-medium text-xs px-2 py-1 shrink-0`}>
                       {issue.severity}
                     </Badge>
-                    <h4 className="text-sm font-semibold text-slate-200 leading-tight break-all">
+                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 leading-tight break-all">
                       {issue.title}
                     </h4>
                   </div>
@@ -810,7 +810,7 @@ export default function PRReviewAgent(){
                         setShowFix(issue);
                       }} 
                       size="sm" 
-                      className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-white shrink-0"
+                      className="font-medium bg-sky-600 hover:bg-sky-500 border-sky-500/30 text-black dark:text-white shrink-0"
                     >
                       <Wand2 className="h-3 w-3" />
                       Fix
@@ -819,12 +819,12 @@ export default function PRReviewAgent(){
                 </div>
 
                 {/* Description */}
-                <div className="text-xs font-normal text-slate-300 leading-relaxed break-words">
+                <div className="text-xs font-normal text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                   {issue.description}
                 </div>
 
                 {/* Location and metadata */}
-                <div className="flex items-center gap-3 text-xs font-normal text-slate-400 pt-1 border-t border-white/5">
+                <div className="flex items-center gap-3 text-xs font-normal text-slate-600 dark:text-slate-400 pt-1 border-t border-white/5">
                   <span className="flex items-center gap-1">
                     <Hash className="h-3 w-3" />
                     Line {issue.line}
@@ -833,7 +833,7 @@ export default function PRReviewAgent(){
                     <>
                       <span className="text-slate-600">•</span>
                       <span className={`flex items-center gap-1 font-mono ${ 
-                        issue.file === activeFile ? 'text-sky-300' : 'text-slate-400'
+                        issue.file === activeFile ? 'text-sky-700 dark:text-sky-300' : 'text-slate-700 dark:text-slate-400'
                       }`}>
                         <FileText className="h-3 w-3" />
                         {issue.file}
@@ -855,8 +855,8 @@ export default function PRReviewAgent(){
           {visibleIssues.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Bot className="h-12 w-12 text-slate-600 mb-3" />
-              <p className="text-sm font-medium text-slate-400 mb-1">No issues found</p>
-              <p className="text-xs text-slate-500">Run AI review to analyze your code</p>
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">No issues found</p>
+              <p className="text-xs text-slate-700 dark:text-slate-500">Run AI review to analyze your code</p>
             </div>
           )}
           </>
@@ -869,8 +869,8 @@ export default function PRReviewAgent(){
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-black/90 border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-slate-200">AI Agent Chat</h3>
-              <button onClick={() => setChatOpen(false)} className="text-slate-400 hover:text-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">AI Agent Chat</h3>
+              <button onClick={() => setChatOpen(false)} className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                 <XCircle className="h-5 w-5" />
               </button>
             </div>
@@ -879,8 +879,8 @@ export default function PRReviewAgent(){
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm font-normal ${ 
                     msg.role === 'user' 
-                      ? 'bg-sky-500/20 text-sky-200' 
-                      : 'bg-white/10 text-slate-200'
+                      ? 'bg-sky-500/20 text-sky-700 dark:text-sky-200'
+                      : 'bg-white/10 text-slate-800 dark:text-slate-200'
                   }`}>
                     {msg.text}
                   </div>
@@ -898,7 +898,7 @@ export default function PRReviewAgent(){
                 .catch(()=>setMessages(m=>[...m,{role:'assistant', text: 'Agent unavailable'}]));
             }}>
               <div className="flex gap-2">
-                <input name="text" placeholder="Ask about issues or request patches..." className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm font-normal text-slate-200 placeholder:text-slate-500" />
+                <input name="text" placeholder="Ask about issues or request patches..." className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm font-normal text-slate-800 dark:text-slate-200 placeholder:text-slate-600 dark:placeholder:text-slate-500" />
                 <Button type="submit" className="font-medium">Send</Button>
               </div>
             </form>
@@ -912,20 +912,20 @@ export default function PRReviewAgent(){
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-black/90 border border-white/10 rounded-2xl p-6 w-full max-w-4xl max-h-[80vh] flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-slate-200">Apply Fix</h3>
-                <button onClick={() => setShowFix(null)} className="text-slate-400 hover:text-slate-200">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Apply Fix</h3>
+                <button onClick={() => setShowFix(null)} className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                   <XCircle className="h-5 w-5" />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">Before:</h4>
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Before:</h4>
                   <pre className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-sm font-mono font-normal text-red-200">
                     {showFix.patch.before}
                   </pre>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">After:</h4>
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">After:</h4>
                   <pre className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm font-mono font-normal text-green-200">
                     {showFix.patch.after}
                   </pre>
