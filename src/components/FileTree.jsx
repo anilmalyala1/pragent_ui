@@ -37,7 +37,7 @@ export default function FileTree({ tree, onFileClick, activeFile }) {
           <div key={currentPath} className="text-sm">
             <button
               onClick={() => toggleFolder(currentPath)}
-              className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-400 hover:bg-white/5"
+              className="w-full flex items-center gap-1.5 rounded-md px-2 py-1 text-slate-700 hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/5"
             >
               <ChevronRight
                 className={`h-4 w-4 shrink-0 transition-transform ${openFolders[currentPath] ? 'rotate-90' : ''}`}
@@ -56,9 +56,11 @@ export default function FileTree({ tree, onFileClick, activeFile }) {
         <button
           key={currentPath}
           onClick={() => onFileClick(item.path)}
-          className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
-            activeFile === item.path ? 'bg-sky-500/20 text-sky-200' : 'text-slate-400 hover:bg-white/5'
-          }`}
+            className={`w-full text-left flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-xs truncate transition-colors ${
+              activeFile === item.path
+                ? 'bg-sky-500/20 text-sky-700 dark:text-sky-200'
+                : 'text-slate-700 hover:bg-black/5 dark:text-slate-400 dark:hover:bg-white/5'
+            }`}
           title={item.path}
           style={{ paddingLeft: `${level * 12 + 16}px` }}
         >
