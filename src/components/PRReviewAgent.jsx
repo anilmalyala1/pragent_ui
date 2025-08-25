@@ -49,12 +49,22 @@ const severityOrder = {
 export default function PRReviewAgent(){
 
   // Data from server
-  // Owner of the repositories to review.  Adjust this value as needed.
-  const owner = 'anilmalyala1';
+  // Owner corresponds to the selected project ID.  Once a project is chosen
+  // its ID is used as the owner value in subsequent API calls.
+  const [owner, setOwner] = useState('');
+
+  // List of projects and the currently selected project.  Selecting a project
+  // triggers loading of its repositories.
+  const [projects, setProjects] = useState([]);
+  const [selectedProject, setSelectedProject] = useState('');
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
+  const projectDropdownRef = useRef(null);
 
   // List of repositories and the currently selected repository.  Repositories
-  // are loaded on initial mount via a dedicated endpoint.  Selecting a
-  // repository triggers loading of its pull requests.
+  // are loaded whenever the owner (project) changes.  Selecting a repository
+  // triggers loading of its pull requests.
   const [repos, setRepos] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState('');
   const [loadingRepos, setLoadingRepos] = useState(false);
@@ -93,6 +103,7 @@ export default function PRReviewAgent(){
   const [sortBySeverity, setSortBySeverity] = useState(true);
   const [issueIndex, setIssueIndex] = useState(-1);
 
+  const [projectError, setProjectError] = useState(null);
   const [repoError, setRepoError] = useState(null);
   const [prError, setPrError] = useState(null);
   const [fileError, setFileError] = useState(null);
@@ -102,18 +113,26 @@ export default function PRReviewAgent(){
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const [fileTreeWidth, setFileTreeWidth] = useState(260);
 
-  // --- Close repo dropdown on outside click ---
+  // --- Close dropdowns on outside click ---
   React.useEffect(() => {
       function handleClickOutside(event) {
           if (repoDropdownRef.current && !repoDropdownRef.current.contains(event.target)) {
               setRepoDropdownOpen(false);
+          }
+          if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target)) {
+              setProjectDropdownOpen(false);
           }
       }
       document.addEventListener("mousedown", handleClickOutside);
       return () => {
           document.removeEventListener("mousedown", handleClickOutside);
       };
-  }, [repoDropdownRef]);
+  }, [repoDropdownRef, projectDropdownRef]);
+
+  const filteredProjects = useMemo(() => {
+      if (!projectSearch) return projects;
+      return projects.filter(p => p.name.toLowerCase().includes(projectSearch.toLowerCase()));
+  }, [projects, projectSearch]);
 
   const filteredRepos = useMemo(() => {
       if (!repoSearch) return repos;
@@ -148,10 +167,16 @@ export default function PRReviewAgent(){
       .finally(() => setLoadingPRs(false));
   }, [selectedRepo]);
 
-  // Load repositories on mount.  This fetches a list of repositories for
-  // the specified owner and selects the first one by default.  Once a
-  // repository is selected, a separate effect will fetch its PRs.
+  // Load repositories whenever the owner (project) changes.  When a project
+  // is selected its project ID becomes the owner and this effect fetches
+  // repositories for that owner.  The first repository, if any, is selected
+  // by default.
   React.useEffect(() => {
+    if (!owner) {
+      setRepos([]);
+      setSelectedRepo('');
+      return;
+    }
     setLoadingRepos(true);
     setRepoError(null);
     axios
@@ -176,6 +201,34 @@ export default function PRReviewAgent(){
         setRepoError('Failed to load repositories');
       })
       .finally(() => setLoadingRepos(false));
+  }, [owner]);
+
+  // Load projects on mount.  This fetches all available projects and selects
+  // the first project as default, updating the owner state accordingly.
+  React.useEffect(() => {
+    setLoadingProjects(true);
+    setProjectError(null);
+    axios
+      .get(apiUrl('prs', `/api/projects`))
+      .then((r) => {
+        const list = r.data || [];
+        const mapped = list.map((item) => ({
+          id: item.project_id || item.id || '',
+          name: item['Project Name'] || item.project_name || item.name || ''
+        }));
+        setProjects(mapped);
+        const defaultProject = mapped[0];
+        if (defaultProject) {
+          setSelectedProject(defaultProject.name);
+          setOwner(defaultProject.id);
+        }
+        setProjectError(null);
+      })
+      .catch((err) => {
+        console.error(err);
+        setProjectError('Failed to load projects');
+      })
+      .finally(() => setLoadingProjects(false));
   }, []);
 
   // Load files+contents when PR selected
@@ -475,6 +528,66 @@ export default function PRReviewAgent(){
             {loadingPRs ? <RefreshCw className="h-3 w-3 animate-spin" /> : filteredPRs.length}
           </Badge>
         </div>
+        {/* Project dropdown */}
+        {loadingProjects ? (
+          <div className="flex items-center justify-center mb-3 h-10">
+            <RefreshCw className="h-4 w-4 animate-spin text-slate-600 dark:text-slate-400" />
+            <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">Loading projects…</span>
+          </div>
+        ) : (
+          <div className="relative mb-3" ref={projectDropdownRef}>
+            <button
+              onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
+              className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-normal text-gray-800 shadow-sm dark:bg-black/40 dark:border-white/10 dark:text-slate-200"
+            >
+              <span className="truncate">{selectedProject || 'Select a project'}</span>
+              <ChevronsUpDown className="h-4 w-4 text-slate-700 dark:text-slate-400 shrink-0" />
+            </button>
+            {projectDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-md dark:bg-[#1c1c1c] dark:border-white/20">
+                <div className="p-2">
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-600 dark:text-slate-400"/>
+                    <input
+                      type="text"
+                      placeholder="Search projects..."
+                      value={projectSearch}
+                      onChange={(e) => setProjectSearch(e.target.value)}
+                      className="w-full bg-gray-50 pl-8 pr-2 py-2 rounded-lg text-sm font-normal text-gray-800 placeholder:text-gray-500 border border-gray-300 dark:bg-black/40 dark:text-slate-200 dark:border-white/10"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-60 overflow-y-auto p-1">
+                  {filteredProjects.length > 0 ? (
+                    filteredProjects.map((proj) => (
+                      <button
+                        key={proj.id}
+                        onClick={() => {
+                          setSelectedProject(proj.name);
+                          setOwner(proj.id);
+                          setProjectDropdownOpen(false);
+                          setProjectSearch('');
+                        }}
+                        className="w-full text-left flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-gray-800 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-white/10"
+                      >
+                        <FileText className="h-4 w-4 text-gray-600 dark:text-slate-400" />
+                        <span className="flex-1 truncate">{proj.name}</span>
+                        {proj.name === selectedProject && <Check className="h-4 w-4 text-sky-400" />}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-center text-xs text-slate-700 dark:text-slate-500 py-2">No projects found.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {projectError && (
+          <div className="mb-2 flex items-center text-xs text-red-600">
+            <XCircle className="h-3 w-3 mr-1" /> {projectError}
+          </div>
+        )}
         {/* Repository dropdown */}
         {loadingRepos ? (
           <div className="flex items-center justify-center mb-3 h-10">
