@@ -82,6 +82,8 @@ export default function PRReviewAgent(){
   const [contents, setContents] = useState({});      // map filename -> content
   const [activeFile, setActiveFile] = useState(null);
   const [code, setCode] = useState('');
+  // Map of filename -> Set(lineNumbers) for changed lines
+  const [changedLineMap, setChangedLineMap] = useState({});
 
   const [issues, setIssues] = useState([]);
   const [summary, setSummary] = useState('');
@@ -242,6 +244,7 @@ export default function PRReviewAgent(){
     // reset state to avoid stale flashes
     setFiles([]);
     setContents({});
+    setChangedLineMap({});
     setActiveFile(null);
     setCode('');
     setExpandedIssue(null);
@@ -262,8 +265,18 @@ export default function PRReviewAgent(){
       )
       .then((r) => {
         const { files: fList = [], contents: map = {} } = r.data || {};
+        // Accept various possible keys for changed lines mapping
+        const changedByFile =
+          r.data?.changedLines || r.data?.changed_lines || r.data?.changes || {};
+        // Normalize into filename -> Set of line numbers
+        const normalized = {};
+        (fList || []).forEach((f) => {
+          const arr = Array.isArray(changedByFile?.[f]) ? changedByFile[f] : [];
+          normalized[f] = new Set(arr);
+        });
         setFiles(fList);
         setContents(map);
+        setChangedLineMap(normalized);
         const first = fList[0] || null;
         setActiveFile(first);
         setCode(first ? map[first] || '' : '');
@@ -760,6 +773,8 @@ export default function PRReviewAgent(){
                       const issue = currentFileIssues.find(i => i.line === lineNo);
                       const isIssue = Boolean(issue);
                       const isExpanded = expandedIssue === lineNo;
+                      const changedSet = changedLineMap[activeFile];
+                      const isChanged = !!(changedSet && changedSet.has(lineNo));
 
                       return (
                         <React.Fragment key={lineNo}>
@@ -768,7 +783,9 @@ export default function PRReviewAgent(){
                             className={`grid grid-cols-[46px_1fr] gap-3 px-3 py-0.5 transition-colors ${
                               isIssue
                                 ? 'bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-800/40 cursor-pointer'
-                                : ''
+                                : isChanged
+                                  ? 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/40'
+                                  : ''
                             } ${isExpanded ? 'bg-yellow-200 dark:bg-yellow-800/40' : ''}`}
                             onClick={() => isIssue && setExpandedIssue(isExpanded ? null : lineNo)}
                           >
